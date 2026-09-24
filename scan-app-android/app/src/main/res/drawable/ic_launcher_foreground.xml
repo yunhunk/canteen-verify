@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  启动图标前景：一个简化的扫码图形（四角定位框 + 中间扫描线）。
+  矢量而非 PNG —— 免去为每个 dpi 各出一张图，且任意尺寸都清晰。
+  视图区 108x108，安全区为中心 72x72（外圈 18dp 可能被裁）。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 左上角 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,34 L46,34 L46,39 L39,39 L39,46 L34,46 Z" />
+    <!-- 右上角 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,34 L74,34 L74,46 L69,46 L69,39 L62,39 Z" />
+    <!-- 左下角 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,62 L39,62 L39,69 L46,69 L46,74 L34,74 Z" />
+    <!-- 右下角 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M69,62 L74,62 L74,74 L62,74 L62,69 L69,69 Z" />
+
+    <!-- 中间扫描线 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,52.5 L68,52.5 L68,55.5 L40,55.5 Z" />
+
+</vector>

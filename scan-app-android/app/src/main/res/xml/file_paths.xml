@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider 可共享的目录。
+  当前版本未直接使用（无导出功能），保留声明是为了后续加
+  「导出本机核销记录为 CSV」时无需改动 manifest。
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

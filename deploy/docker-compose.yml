@@ -1,0 +1,136 @@
+# ============================================================
+# 食堂核销系统 · 生产编排
+#
+# 四个服务：mysql / redis / api / web（nginx 反代 + 静态前端）
+#
+# ── 改配置看这里 ──────────────────────────────────────────────
+# 所有配置集中在同目录 .env（模板 .env.example 每项都有标注）：
+#   【★必改】MYSQL_ROOT_PASSWORD / DB_PASSWORD   数据库密码
+#   【★必改】JWT_SECRET                          登录签名密钥
+#   【★必改】WECHAT_APPSECRET                    微信小程序密钥
+#   【★必改】DB_SYNC=0                           生产必须 0
+#   其余项默认值可直接用（模板里有逐项说明）
+# 改完执行：docker compose up -d   （改 JWT_SECRET 后需 restart api）
+# 本文件只固化结构与非敏感默认值 —— 换环境只改 .env，不动编排。
+#
+# 常用命令（在 deploy/ 目录下）：
+#   docker compose up -d              # 启动/更新全部服务
+#   docker compose logs -f api        # 跟后端日志
+#   docker compose exec api sh        # 进后端容器
+#   docker compose down               # 停止（数据卷保留）
+#   docker compose down -v            # ⚠️ 连数据库一起删（慎用）
+# ============================================================
+
+services:
+
+  # ---------- MySQL 8：唯一有状态的核心，数据落 named volume ----------
+  mysql:
+    image: mysql:8.0
+    container_name: canteen-mysql
+    restart: unless-stopped
+    ports:
+      # 只绑回环：数据库绝不暴露公网；宿主 3307 是留给宿主机上
+      # 排障用的 docker exec mysql 替代方案
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动建表 + 种子数据（文件由部署脚本准备；已初始化过的卷会跳过）
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------- Redis：核销码防重放 setNx / 会话辅助，可随时重建 ----------
+  redis:
+    image: redis:7-alpine
+    container_name: canteen-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------- 后端 API：NestJS，镜像由 ../backend/Dockerfile 构建 ----------
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: canteen-api:latest
+    container_name: canteen-api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      # 只绑回环：公网流量一律走 web 的 nginx 反代
+      - "127.0.0.1:${API_HOST_PORT:-3100}:3100"
+    environment:
+      # 容器网络里互相用服务名访问，覆盖 .env 里的 127.0.0.1
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      # ── 其余业务配置全部来自 deploy/.env（一行一处，集中管理）──
+      NODE_ENV: production
+      PORT: 3100
+      HOST: 0.0.0.0
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: 3306
+      DB_SYNC: ${DB_SYNC:-0}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      QRCODE_TTL: ${QRCODE_TTL:-300}
+      WX_APPID: ${WX_APPID}
+      WECHAT_APPSECRET: ${WECHAT_APPSECRET}
+      ALLOW_LEGACY_DEVICE_TOKEN: ${ALLOW_LEGACY_DEVICE_TOKEN:-0}
+      TZ: ${TZ:-Asia/Shanghai}
+    healthcheck:
+      # 后端没有 /health 接口；只要进程能回 HTTP（哪怕是 404/401）就算活着
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3100/',r=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------- 前端 web：nginx 反代 /api + 托管 admin-web 静态产物 ----------
+  web:
+    image: nginx:alpine
+    container_name: canteen-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # admin-web 构建产物（部署脚本负责先 npm run build）
+      - ../admin-web/dist:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # HTTPS 证书（certbot webroot 签发；无证书前先只跑 80，签发后 reload 即可）
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # certbot HTTP-01 验证目录（webroot 模式续期用）
+      - ./certbot:/var/www/certbot:ro
+
+volumes:
+  mysql-data:
+  redis-data:

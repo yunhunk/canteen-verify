@@ -1,0 +1,200 @@
+:root {
+  --tc-primary: #2b6cb0;
+  --tc-bg: #f4f6f8;
+  --tc-border: #e5e9f0;
+  --tc-text: #1f2937;
+  --tc-text-sub: #6b7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--tc-bg);
+  color: var(--tc-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  font-size: 14px;
+}
+
+/* ── 页面骨架 ── */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.page-desc {
+  font-size: 13px;
+  color: var(--tc-text-sub);
+  margin-top: 4px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.table-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.table-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ── 统计卡 ── */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.stat-card .label {
+  font-size: 13px;
+  color: var(--tc-text-sub);
+}
+
+.stat-card .value {
+  font-size: 26px;
+  font-weight: 600;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card .value.primary {
+  color: var(--tc-primary);
+}
+
+.stat-card .value.ok {
+  color: #38a169;
+}
+
+.stat-card .value.warn {
+  color: #dd6b20;
+}
+
+.stat-card .value.danger {
+  color: #e53e3e;
+}
+
+.stat-card .foot {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+/* ── 图例与条形 ── */
+
+.trend-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.trend-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.trend-date {
+  width: 92px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--tc-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-bar-track {
+  flex: 1;
+  height: 16px;
+  background: #f0f3f7;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.trend-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #2b6cb0, #4299e1);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.trend-count {
+  width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-empty {
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* ── 通用 ── */
+
+.muted {
+  color: var(--tc-text-sub);
+}
+
+.mono {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}

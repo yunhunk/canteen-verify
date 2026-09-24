@@ -1,0 +1,138 @@
+<view class="page">
+  <!-- 时段状态条 -->
+  <view class="status-bar {{open || noLimit ? 'open' : 'closed'}}">
+    <text class="status-dot"></text>
+    <text>{{openText}}</text>
+  </view>
+
+  <view class="qr-wrap">
+    <view class="card qr-card">
+      <block wx:if="{{loading}}">
+        <view class="qr-skeleton"></view>
+        <view class="qr-loading-text">正在生成核销码…</view>
+      </block>
+
+      <!-- 非核销时段：不出码（服务端也会拒绝发码，这里是同一语义的前端呈现） -->
+      <block wx:elif="{{closed}}">
+        <view class="qr-closed">
+          <view class="qr-closed-icon">🕐</view>
+          <view class="qr-closed-title">当前不在核销时段</view>
+          <view class="qr-closed-desc">
+            核销码只在公司设置的用餐时段内生成，避免你在窗口排队后才发现扫不了。
+          </view>
+
+          <view class="qr-closed-windows">
+            <view class="qr-closed-label">可核销时间</view>
+            <view
+              wx:for="{{windows}}"
+              wx:key="id"
+              class="qr-closed-window"
+            >
+              <text class="qr-closed-window-name">{{item.name}}</text>
+              <text class="qr-closed-window-time">{{item.startTime}} - {{item.endTime}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{nextWindowText}}" class="qr-closed-next">{{nextWindowText}}</view>
+
+          <view class="qr-actions">
+            <view class="btn-primary qr-refresh-btn" bindtap="init">重新检测</view>
+            <view class="btn-ghost qr-refresh-btn" bindtap="goFeedback">反馈问题</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{errorMsg}}">
+        <view class="qr-error">
+          <view class="qr-error-title">核销码加载失败</view>
+          <view class="qr-error-msg">{{errorMsg}}</view>
+          <view class="btn-ghost qr-retry" bindtap="init">重试</view>
+        </view>
+      </block>
+
+      <!-- 个人核销次数已用完：不出码，明确告知找谁处理 -->
+      <block wx:elif="{{noQuota}}">
+        <view class="qr-closed">
+          <view class="qr-closed-icon">🎫</view>
+          <view class="qr-closed-title">核销次数已用完</view>
+          <view class="qr-closed-desc">
+            本公司对你的核销次数做了限制，当前已用完。请联系公司管理员为你增加次数。
+          </view>
+
+          <view class="qr-closed-windows">
+            <view class="qr-closed-label">本次额度</view>
+            <view class="qr-closed-window">
+              <text class="qr-closed-window-name">已用 {{quotaUsed}} 次</text>
+              <text class="qr-closed-window-time">额度 {{quotaTotal}} 次</text>
+            </view>
+          </view>
+
+          <view class="qr-actions">
+            <view class="btn-primary qr-refresh-btn" bindtap="init">重新检测</view>
+            <view class="btn-ghost qr-refresh-btn" bindtap="goFeedback">反馈问题</view>
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <!-- 二维码由后端编码成 SVG data URL 下发（见 backend/src/modules/qrcode/qr-encoder.ts），
+             这里直接渲染成图片，不需要小程序端引入任何二维码库。
+             万一拿不到图片时降级为文本码，至少还能人工核对。
+             码被核销后（used）占位区整体切换为「已完成」，不再显示可扫的码。 -->
+        <view class="qr-box" wx:if="{{!used}}">
+          <image
+            wx:if="{{qrImageUrl}}"
+            class="qr-image"
+            src="{{qrImageUrl}}"
+            mode="aspectFit"
+          />
+          <view wx:else class="qr-fallback">
+            <view class="qr-fallback-label">核销凭证</view>
+            <view class="qr-fallback-token">{{qrContent}}</view>
+            <view class="qr-fallback-hint">
+              将此码出示给门店核销员，或在扫码设备上扫描
+            </view>
+          </view>
+        </view>
+
+        <!-- 已核销占位：员工是"扫没扫成"最后一个知道的人，这里让他第一时间知道 -->
+        <view class="qr-box qr-done-box" wx:else>
+          <view class="qr-done-badge">✓</view>
+          <view class="qr-done-title">
+            已核销{{usedWindowName ? '（' + usedWindowName + '）' : ''}}
+          </view>
+          <view wx:if="{{usedTimeText}}" class="qr-done-time">核销时间 {{usedTimeText}}</view>
+          <view class="qr-done-desc">本次核销已完成，本次就餐二维码已失效</view>
+        </view>
+
+        <view class="qr-countdown" wx:if="{{!used}}">
+          <text class="countdown-label">剩余有效时间</text>
+          <text class="countdown-value {{remainSeconds <= 20 ? 'urgent' : ''}}">
+            {{countdownText}}
+          </text>
+        </view>
+        <view class="qr-countdown" wx:else>
+          <text class="countdown-label">当前状态</text>
+          <text class="countdown-value done">已完成</text>
+        </view>
+
+        <!-- 本人剩余核销次数 + 餐标：用前最直观，省得核销时才发现不够 -->
+        <view class="qr-meta">
+          <text class="qr-quota {{quotaLow ? 'low' : ''}}">{{quotaText}}</text>
+          <text wx:if="{{mealStandardText && mealStandardText !== '未设置'}}" class="qr-meal">
+            · 餐标{{mealStandardText}}
+          </text>
+        </view>
+
+        <view class="qr-actions">
+          <view class="btn-ghost" wx:if="{{!used}}" bindtap="onManualRefresh">刷新核销码</view>
+          <view class="btn-primary" wx:else bindtap="onIssueAgain">再来一码</view>
+        </view>
+
+        <view class="qr-tip">
+          核销码一次性使用，5 分钟内有效，请勿截图分享给他人
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

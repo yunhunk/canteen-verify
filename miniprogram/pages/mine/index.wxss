@@ -1,0 +1,177 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 60rpx;
+}
+
+/* 顶部身份区 */
+.hero {
+  background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%);
+  padding: 56rpx 32rpx 72rpx;
+  border-radius: 0 0 40rpx 40rpx;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+}
+
+.hero-avatar {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-info {
+  margin-left: 24rpx;
+  min-width: 0;
+}
+
+.hero-name {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 1rpx;
+}
+
+.hero-sub {
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 8rpx;
+}
+
+/* 统计 */
+.stat-item {
+  flex: 1;
+}
+
+/* 停用警告 */
+.warn-card {
+  background: #fff5f5;
+  border: 1rpx solid #feb2b2;
+}
+
+.warn-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #c53030;
+  margin-bottom: 10rpx;
+}
+
+.warn-body {
+  font-size: 25rpx;
+  color: #9b2c2c;
+  line-height: 1.7;
+}
+
+.warn-btn {
+  display: inline-block;
+  padding: 14rpx 48rpx;
+  margin-top: 24rpx;
+  color: #c53030;
+  border-color: #c53030;
+}
+
+/* 个人信息行 */
+.copy-hint {
+  font-size: 22rpx;
+  color: #2b6cb0;
+  margin-left: 12rpx;
+  border: 1rpx solid #90cdf4;
+  border-radius: 6rpx;
+  padding: 2rpx 12rpx;
+}
+
+.row-value.ok {
+  color: #276749;
+}
+
+.row-value.off {
+  color: #c53030;
+}
+
+/* 快捷入口单元格 */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #f0f2f5;
+  font-size: 29rpx;
+  color: #1f2937;
+}
+
+.cell:last-child {
+  border-bottom: none;
+}
+
+.cell-arrow {
+  color: #cbd5e0;
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+/* 退出按钮 */
+.btn-logout {
+  margin-top: 40rpx;
+  background: #ffffff;
+  color: #e53e3e;
+  border-radius: 16rpx;
+  padding: 26rpx 0;
+  text-align: center;
+  font-size: 31rpx;
+  font-weight: 500;
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.06);
+}
+
+.footer-tip {
+  margin-top: 40rpx;
+  text-align: center;
+  font-size: 23rpx;
+  color: #a0aec0;
+}
+
+/* 骨架屏 */
+.skeleton-row {
+  height: 40rpx;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #f4f6f8 25%, #eaeef3 37%, #f4f6f8 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  margin-bottom: 24rpx;
+}
+
+.skeleton-row.short {
+  width: 55%;
+  margin-bottom: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* 错误态 */
+.error-card {
+  text-align: center;
+  color: #e53e3e;
+  font-size: 27rpx;
+}
+
+.retry-btn {
+  display: inline-block;
+  padding: 14rpx 56rpx;
+  margin-top: 28rpx;
+}

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 相机：扫码必需 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- 联网：核销必须联网（不做离线核销，避免本地先放行、后端却拒绝的尴尬）。
+         OkHttp 不需要 ACCESS_NETWORK_STATE，不声明用不到的权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 震动反馈：扫到即震一下，嘈杂食堂里比声音更可靠 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- 保持屏幕常亮由 Activity 的 FLAG_KEEP_SCREEN_ON 实现，无需额外权限 -->
+
+    <!-- 相机是必需硬件。声明为 required 可避免装到没有摄像头的设备上 -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+
+    <application
+        android:name=".ScanApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.CanteenScan"
+        tools:targetApi="34">
+
+        <!--
+          网络安全：由 @xml/network_security_config 统一管理。
+
+          后端已切换为 HTTPS 域名（https://tuancan.gengle.xyz），
+          明文流量已全局禁止；如需内网 IP+HTTP 调试，在
+          network_security_config.xml 里按域名临时放行，不要全局开闸。
+        -->
+        <activity
+            android:name=".ui.SplashActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CanteenScan.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          扫码页：锁竖屏。屏幕常亮在代码里用 FLAG_KEEP_SCREEN_ON 实现
+          （keepScreenOn 是 View 属性，写在 <activity> 上无效且部分 AGP 版本会报错）。
+        -->
+        <activity
+            android:name=".ui.ScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CanteenScan.Scanner"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <!--
+          结果页：用 singleTop + 可被扫码页复用。
+          连扫模式下不重复创建实例，避免返回栈越堆越深。
+        -->
+        <activity
+            android:name=".ui.ResultActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.BindActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".ui.HistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!--
+          网络安全配置：明文流量已在 network_security_config 中全局禁止，
+          全部请求强制走 TLS（后端为 HTTPS 域名）。
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>

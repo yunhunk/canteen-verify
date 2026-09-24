@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">扫码核销</string>
+
+    <!-- 绑定页 -->
+    <string name="bind_title">绑定核销设备</string>
+    <string name="bind_subtitle">输入平台管理员发放的设备密钥</string>
+    <string name="bind_device_key">设备密钥</string>
+    <string name="bind_device_key_hint">粘贴或输入设备密钥</string>
+    <string name="bind_store_hint">设备已绑定门店，核销将自动归属该门店</string>
+    <string name="bind_submit">绑定并开始</string>
+    <string name="bind_checking">正在校验…</string>
+    <string name="bind_ok">绑定成功</string>
+    <string name="bind_help_title">密钥从哪里来？</string>
+    <string name="bind_help_body">请平台管理员登录管理后台，在「设备管理」中新增一台设备。保存后页面会显示一串设备密钥，该密钥只显示一次，复制过来粘贴即可。</string>
+    <string name="bind_help_title_api">服务器：%1$s</string>
+    <string name="bind_key_empty">请输入设备密钥</string>
+    <string name="bind_key_invalid">设备密钥无效，请向平台管理员确认</string>
+    <string name="bind_network_detail">无法连接到服务器：\n%1$s\n\n请确认手机与服务器网络互通后重试。密钥无需重新索取。</string>
+
+    <!-- 扫码页 -->
+    <string name="scan_title">扫码核销</string>
+    <string name="scan_hint">将员工核销码对准取景框</string>
+    <string name="scan_starting">正在启动相机…</string>
+    <string name="scan_processing">正在核销…</string>
+    <string name="scan_manual">手动输入</string>
+    <string name="scan_switch_store">换绑密钥</string>
+    <string name="scan_history">核销记录</string>
+    <string name="scan_switch_camera">切换镜头</string>
+    <string name="scan_torch_on">打开补光</string>
+    <string name="scan_torch_off">关闭补光</string>
+    <string name="scan_camera_denied">未获得相机权限，无法扫码</string>
+    <string name="scan_camera_denied_action">去授权</string>
+    <string name="scan_camera_failed">相机启动失败：%1$s</string>
+    <string name="scan_no_torch">当前镜头没有补光灯</string>
+    <string name="scan_store_unbound">门店：未指定</string>
+    <string name="scan_session_count">本次 %1$d 单</string>
+
+    <!-- 手动输入码 -->
+    <string name="manual_title">手动输入核销码</string>
+    <string name="manual_hint">输入员工核销码（32 位）</string>
+    <string name="manual_submit">确认核销</string>
+
+    <!-- 结果页 -->
+    <string name="result_success">核销成功</string>
+    <string name="result_fail">核销失败</string>
+    <string name="result_meal_standard">餐标</string>
+    <string name="result_quota_remain">剩余次数</string>
+    <string name="result_quota_unlimited">不限</string>
+    <string name="result_spoken">已播报「%1$s」</string>
+    <string name="result_store">门店</string>
+    <string name="result_store_line">门店：%1$s</string>
+    <string name="result_time">时间</string>
+    <string name="result_time_line">时间：%1$s</string>
+    <string name="result_meal_unset">未设置</string>
+    <string name="result_meal_value">%1$s 元</string>
+    <string name="result_quota_value">%1$d 次</string>
+    <string name="result_employee">员工</string>
+    <string name="result_continue">继续扫码</string>
+    <string name="result_retry">重试</string>
+    <string name="result_history">查看记录</string>
+    <string name="result_auto_back">%1$d 秒后自动继续扫码</string>
+    <string name="result_auto_cancel">点击取消自动返回</string>
+
+    <!-- 记录页 -->
+    <string name="history_title">核销记录</string>
+    <string name="history_empty">本机暂无核销记录</string>
+    <string name="history_clear">清空记录</string>
+    <string name="history_clear_confirm">清空本机核销记录？此操作不影响服务器数据。</string>
+    <string name="history_note">仅显示本机核销过的记录，完整数据请在管理后台查看</string>
+    <string name="history_unknown_employee">未知员工</string>
+
+    <!-- 设备密钥失效 -->
+    <string name="result_device_invalid_title">设备密钥已失效</string>
+    <string name="result_device_invalid_body">%1$s\n\n本机保存的设备密钥已不可用，需要重新绑定。请向平台管理员索取新的设备密钥。</string>
+    <string name="result_device_invalid_action">重新绑定</string>
+
+    <!-- 通用 -->
+    <string name="common_confirm">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_ok">知道了</string>
+    <string name="common_network_error">网络异常，请检查网络后重试</string>
+    <string name="common_unknown_error">未知错误</string>
+
+    <!-- 无障碍 -->
+    <string name="cd_scan_frame">扫码取景框</string>
+    <string name="cd_result_icon">核销结果</string>
+</resources>

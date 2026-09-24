@@ -1,0 +1,317 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+.hero {
+  background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%);
+  padding: 56rpx 40rpx 80rpx;
+  color: #ffffff;
+  border-radius: 0 0 40rpx 40rpx;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-avatar {
+  width: 92rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: 2rpx solid rgba(255, 255, 255, 0.45);
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.hero-status {
+  margin-top: 36rpx;
+}
+
+.container {
+  padding: 0 24rpx;
+  margin-top: -48rpx;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.06);
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title-note {
+  font-size: 24rpx;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.stat-row {
+  display: flex;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+}
+
+.stat-value {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #2b6cb0;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 8rpx;
+}
+
+/* 时段列表 */
+.window-none {
+  color: #6b7280;
+  font-size: 26rpx;
+  padding: 16rpx 0;
+}
+
+.window-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.window-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 24rpx;
+  border-radius: 14rpx;
+  background: #f7f9fb;
+  border-left: 6rpx solid #cbd5e0;
+}
+
+.window-item.active {
+  background: #ebf4ff;
+  border-left-color: #2b6cb0;
+}
+
+.window-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.cross-badge {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  border-radius: 6rpx;
+  background: #fef3c7;
+  color: #b7791f;
+  font-weight: 400;
+}
+
+.window-time {
+  font-size: 25rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.window-right {
+  text-align: right;
+}
+
+.window-limit {
+  font-size: 25rpx;
+  color: #4b5563;
+}
+
+/* 该时段今天已用完：标灰，避免用户白跑一趟饭点 */
+.window-limit.used {
+  color: #9ca3af;
+}
+
+.window-state {
+  font-size: 23rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+.window-item.active .window-state {
+  color: #2b6cb0;
+  font-weight: 500;
+}
+
+.window-tip {
+  font-size: 23rpx;
+  color: #9ca3af;
+  margin-top: 20rpx;
+}
+
+/* 操作卡 */
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx 32rpx;
+}
+
+.action-icon {
+  width: 84rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  border-radius: 20rpx;
+  background: #2b6cb0;
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.action-icon.gray {
+  background: #4a5568;
+}
+
+.action-body {
+  flex: 1;
+}
+
+.action-title {
+  font-size: 31rpx;
+  font-weight: 500;
+  color: #111827;
+}
+
+.action-desc {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+.action-arrow {
+  font-size: 44rpx;
+  color: #cbd5e0;
+}
+
+/* 骨架屏 */
+.skeleton-row {
+  height: 32rpx;
+  border-radius: 8rpx;
+  background: #f0f2f5;
+  margin-bottom: 20rpx;
+}
+
+.skeleton-row.short {
+  width: 50%;
+  margin-bottom: 0;
+}
+
+.error-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  color: #e53e3e;
+  font-size: 27rpx;
+}
+
+.retry-btn {
+  align-self: flex-start;
+  padding: 14rpx 40rpx;
+}
+
+/* ── 剩余核销次数 + 餐标 ── */
+
+.quota-card {
+  background: linear-gradient(135deg, #ebf4ff 0%, #ffffff 60%);
+  border: 1rpx solid #bee3f8;
+}
+
+/* 次数已用完：整张卡换成警示色，比只看数字更醒目 */
+.quota-card.exhausted {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 60%);
+  border-color: #feb2b2;
+}
+
+.quota-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.quota-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.quota-sub {
+  font-size: 23rpx;
+  color: #718096;
+}
+
+.quota-body {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: baseline;
+}
+
+.quota-value {
+  font-size: 72rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #2b6cb0;
+}
+
+/* 只剩 ≤1 次变橙；用完变红 */
+.quota-value.low {
+  color: #dd6b20;
+}
+
+.quota-value.unlimited {
+  font-size: 56rpx;
+  color: #38a169;
+}
+
+.quota-unit {
+  font-size: 28rpx;
+  color: #4a5568;
+  margin-left: 8rpx;
+}
+
+.quota-foot {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx 16rpx;
+}
+
+.quota-meal {
+  font-size: 25rpx;
+  color: #4a5568;
+}
+
+.quota-alert {
+  font-size: 23rpx;
+  color: #e53e3e;
+}

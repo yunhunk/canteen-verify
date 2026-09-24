@@ -1,0 +1,50 @@
+# 云端编译 APK：本机没有 Android SDK 时，把本工程推到 GitHub 仓库，
+# Actions 会自动构建并在页面提供 APK 下载（Artifacts 区域）。
+#
+# 用法：
+#   1. 在 GitHub 新建仓库，把 scan-app-android/ 内容推上去（本文件须位于
+#      仓库根的 .github/workflows/ 下）
+#   2. 打开仓库 Actions 标签页 → 选中「Build APK」本次运行
+#   3. 页面底部 Artifacts 下载 canteen-scan-debug-apk，解压即得 APK
+#
+# 注意：工程没有提交 gradlew 脚本与 wrapper jar，因此这里用
+# setup-gradle 直接安装 Gradle 8.7（与 gradle-wrapper.properties 一致），
+# 不依赖 wrapper 文件。
+
+name: Build APK
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch: {} # 支持在 Actions 页面手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: canteen-scan-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 30

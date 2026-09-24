@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置。
+
+  后端已切换为 HTTPS 域名（https://tuancan.gengle.xyz），
+  base-config 收紧为禁止明文 —— 全部流量强制走 TLS。
+
+  保留这个文件而不是删掉它：如果将来需要在内网回退到
+  IP + HTTP 调试，按域名精细放行比 android:usesCleartextTraffic="true"
+  的一刀切全开更安全。
+-->
+<network-security-config>
+
+    <!--
+      默认策略：禁止明文（HTTPS 就绪后收紧）。
+    -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+</network-security-config>

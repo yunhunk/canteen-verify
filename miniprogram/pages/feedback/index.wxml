@@ -1,0 +1,127 @@
+<view class="page">
+  <!-- 顶部切换 -->
+  <view class="tabs">
+    <view class="tab {{tab === 'submit' ? 'active' : ''}}" bindtap="onTab" data-tab="submit">
+      我要反馈
+    </view>
+    <view class="tab {{tab === 'history' ? 'active' : ''}}" bindtap="onTab" data-tab="history">
+      我的反馈
+      <text wx:if="{{historyTotal > 0}}" class="tab-badge">{{historyTotal}}</text>
+    </view>
+  </view>
+
+  <!-- 提交反馈 -->
+  <view wx:if="{{tab === 'submit'}}" class="container">
+    <view wx:if="{{fromQrcode}}" class="card hint-card">
+      <view class="hint-title">不在核销时段？</view>
+      <view class="hint-body">
+        如果时段设置与实际用餐时间不符，可以在这里反馈给平台，平台会核实后联系公司调整。
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="form-label">反馈类型</view>
+      <view class="type-list">
+        <view
+          wx:for="{{types}}"
+          wx:key="value"
+          class="type-item {{form.type === item.value ? 'active' : ''}}"
+          bindtap="onPickType"
+          data-value="{{item.value}}"
+        >
+          <text class="type-icon">{{item.icon}}</text>
+          <text class="type-text">{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="form-label">标题</view>
+      <input
+        class="form-input"
+        placeholder="一句话概括，例如：午餐时段太短"
+        placeholder-class="ph"
+        maxlength="50"
+        value="{{form.title}}"
+        bindinput="onTitleInput"
+      />
+      <view class="counter">{{form.title.length}}/50</view>
+
+      <view class="form-label">详细描述</view>
+      <textarea
+        class="form-textarea"
+        placeholder="请描述具体情况，例如发生的时间、门店、遇到的问题…"
+        placeholder-class="ph"
+        maxlength="2000"
+        value="{{form.content}}"
+        bindinput="onContentInput"
+        auto-height
+      />
+      <view class="counter">{{form.content.length}}/2000</view>
+
+      <view class="form-label">联系方式（选填）</view>
+      <input
+        class="form-input"
+        placeholder="手机号或微信号，便于平台回访"
+        placeholder-class="ph"
+        maxlength="50"
+        value="{{form.contact}}"
+        bindinput="onContactInput"
+      />
+
+      <view class="privacy-tip">
+        反馈仅平台运营可见，不会展示给你的公司管理员
+      </view>
+
+      <view
+        class="btn-primary submit-btn {{submitting ? 'disabled' : ''}}"
+        bindtap="onSubmit"
+      >
+        {{submitting ? '提交中…' : '提交反馈'}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的反馈历史 -->
+  <view wx:if="{{tab === 'history'}}" class="container">
+    <block wx:if="{{historyLoading}}">
+      <view class="card">
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row short"></view>
+      </view>
+    </block>
+
+    <block wx:elif="{{history.length === 0}}">
+      <view class="card empty-card">
+        <view class="empty-icon">📮</view>
+        <view class="empty-title">还没有反馈记录</view>
+        <view class="empty-desc">遇到问题或有好建议，都可以告诉我们</view>
+        <view class="btn-ghost empty-btn" bindtap="onTab" data-tab="submit">去反馈</view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view wx:for="{{history}}" wx:key="id" class="card fb-card">
+        <view class="fb-head">
+          <text class="fb-type">{{item.typeLabel}}</text>
+          <text class="fb-status {{item.status === 1 ? 'done' : 'pending'}}">
+            {{item.status === 1 ? '已处理' : '待处理'}}
+          </text>
+        </view>
+        <view class="fb-title">{{item.title}}</view>
+        <view class="fb-content">{{item.content}}</view>
+        <view class="fb-time">{{item.timeText}}</view>
+
+        <view wx:if="{{item.reply}}" class="fb-reply">
+          <view class="fb-reply-label">平台回复</view>
+          <view class="fb-reply-text">{{item.reply}}</view>
+          <view class="fb-reply-time">{{item.replyTimeText}}</view>
+        </view>
+        <view wx:else class="fb-no-reply">平台正在处理中…</view>
+      </view>
+
+      <view wx:if="{{hasMore}}" class="load-more" bindtap="loadMore">
+        {{loadingMore ? '加载中…' : '加载更多'}}
+      </view>
+      <view wx:else class="load-end">没有更多了</view>
+    </block>
+  </view>
+</view>

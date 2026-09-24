@@ -1,0 +1,126 @@
+<view class="page">
+  <!-- 顶部渐变区 -->
+  <view class="hero">
+    <view class="hero-top">
+      <view>
+        <view class="hero-name">{{user.name || '员工'}}</view>
+        <view class="hero-sub">{{user.companyName || ''}}<text wx:if="{{user.employeeNo}}"> · {{user.employeeNo}}</text></view>
+      </view>
+      <view class="hero-avatar" bindtap="goMine">{{user.name ? user.name[0] : '员'}}</view>
+    </view>
+
+    <view class="hero-status">
+      <view wx:if="{{noLimit}}" class="status-pill open">不限时段，随时可核销</view>
+      <view wx:elif="{{open}}" class="status-pill open">当前可核销 · {{currentTime}}</view>
+      <view wx:else class="status-pill closed">当前未开放 · {{currentTime}}</view>
+    </view>
+  </view>
+
+  <view class="container">
+    <!-- 加载中 -->
+    <block wx:if="{{loading}}">
+      <view class="card">
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row short"></view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <!-- 错误提示 -->
+      <view wx:if="{{errorMsg}}" class="card error-card">
+        <text>{{errorMsg}}</text>
+        <view class="btn-ghost retry-btn" bindtap="loadAll">重试</view>
+      </view>
+
+      <!-- 剩余核销次数 + 餐标：进门第一眼要看到的就这两样 -->
+      <view class="card quota-card {{quotaExhausted ? 'exhausted' : ''}}">
+        <view class="quota-head">
+          <text class="quota-label">剩余核销次数</text>
+          <text wx:if="{{quotaLimited}}" class="quota-sub">已用 {{quotaUsed}} / 共 {{quotaTotal}} 次</text>
+          <text wx:else class="quota-sub">公司未限制个人次数</text>
+        </view>
+
+        <view class="quota-body">
+          <text wx:if="{{quotaLimited}}" class="quota-value {{quotaLow ? 'low' : ''}}">{{quotaRemain}}</text>
+          <text wx:else class="quota-value unlimited">不限</text>
+          <text wx:if="{{quotaLimited}}" class="quota-unit">次</text>
+        </view>
+
+        <view class="quota-foot">
+          <text class="quota-meal">餐标 {{mealStandardText}}</text>
+          <text wx:if="{{quotaExhausted}}" class="quota-alert">次数已用完，请联系公司管理员</text>
+        </view>
+      </view>
+
+      <!-- 数据概览 -->
+      <view class="card">
+        <view class="card-title">我的用餐</view>
+        <view class="stat-row">
+          <view class="stat-item">
+            <view class="stat-value">{{todayConsumptions}}</view>
+            <view class="stat-label">今日核销</view>
+          </view>
+          <view class="stat-item">
+            <view class="stat-value">{{myConsumptions}}</view>
+            <view class="stat-label">累计核销</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 可核销时段 -->
+      <view class="card">
+        <view class="card-title">
+          <text>可核销时段</text>
+          <text class="card-title-note">今天</text>
+        </view>
+
+        <view wx:if="{{noLimit}}" class="window-none">
+          公司未设置时段限制，任何时间都可以核销
+        </view>
+
+        <view wx:else class="window-list">
+          <view
+            wx:for="{{windows}}"
+            wx:key="id"
+            class="window-item {{item.active ? 'active' : ''}}"
+          >
+            <view class="window-left">
+              <view class="window-name">
+                {{item.name}}
+                <text wx:if="{{item.crossDay}}" class="cross-badge">跨天</text>
+              </view>
+              <view class="window-time">{{item.startTime}} - {{item.endTime}}</view>
+            </view>
+            <view class="window-right">
+              <view class="window-limit {{item.limitUsed ? 'used' : ''}}">{{item.limitText}}</view>
+              <view class="window-state">{{item.stateText}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{!noLimit}}" class="window-tip">
+          提示：实际核销结果以现场扫码为准
+        </view>
+      </view>
+
+      <!-- 操作入口 -->
+      <view class="card action-card" bindtap="goQrcode">
+        <view class="action-icon">码</view>
+        <view class="action-body">
+          <view class="action-title">出示核销码</view>
+          <view class="action-desc">向门店核销员出示二维码完成扣次</view>
+        </view>
+        <view class="action-arrow">›</view>
+      </view>
+
+      <view class="card action-card" bindtap="goRecords">
+        <view class="action-icon gray">记</view>
+        <view class="action-body">
+          <view class="action-title">消费记录</view>
+          <view class="action-desc">查看历史核销时间与门店</view>
+        </view>
+        <view class="action-arrow">›</view>
+      </view>
+    </block>
+  </view>
+</view>

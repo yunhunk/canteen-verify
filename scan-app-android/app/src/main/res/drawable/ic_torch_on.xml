@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 补光开启状态：闪电用品牌浅蓝填充，与关闭态区分 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#378ADD"
+        android:pathData="M7,2h6l-1.5,7H17l-8,13l1.5,-9H6z" />
+</vector>

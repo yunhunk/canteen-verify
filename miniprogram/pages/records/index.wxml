@@ -1,0 +1,55 @@
+<view class="page">
+  <view class="container">
+    <!-- 加载中 -->
+    <block wx:if="{{loading}}">
+      <view class="card">
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row short"></view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <!-- 错误态 -->
+      <view wx:if="{{errorMsg}}" class="card error-card">
+        <text>{{errorMsg}}</text>
+        <view class="btn-ghost retry-btn" bindtap="retry">重试</view>
+      </view>
+
+      <!-- 空态 -->
+      <view wx:elif="{{list.length === 0}}" class="empty">
+        <view class="empty-illust">🍽️</view>
+        <view class="empty-title">还没有核销记录</view>
+        <view class="empty-desc">到店出示核销码后，记录会出现在这里</view>
+      </view>
+
+      <!-- 列表 -->
+      <block wx:else>
+        <view class="summary">
+          累计核销 <text class="summary-num">{{total}}</text> 次
+        </view>
+
+        <view class="card list-card">
+          <view wx:for="{{list}}" wx:key="id" class="rec-item">
+            <view class="rec-date">
+              <view class="rec-date-day">{{item.dateText}}</view>
+              <view class="rec-date-week">{{item.weekText}} {{item.timeText}}</view>
+            </view>
+            <view class="rec-body">
+              <view class="rec-store">{{item.storeName}}</view>
+              <view class="rec-meta">核销 1 次 · 扣减 {{item.deductQuota}} 次</view>
+            </view>
+            <view class="rec-badge">已核销</view>
+          </view>
+        </view>
+
+        <!-- 加载更多 -->
+        <view class="load-more">
+          <text wx:if="{{loadingMore}}">正在加载…</text>
+          <text wx:elif="{{hasMore}}">上拉加载更多</text>
+          <text wx:else>没有更多了</text>
+        </view>
+      </block>
+    </block>
+  </view>
+</view>

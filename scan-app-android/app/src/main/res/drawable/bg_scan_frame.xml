@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  扫码取景框：四个角标 + 中间透明。
+  只画角不画整框，是扫码界面的通用做法 —— 整框会挡住二维码边缘，
+  而二维码的三个定位角恰好在边缘位置。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 左上角 -->
+    <item android:gravity="top|start">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_length"
+                android:height="@dimen/scan_corner_width" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+    <item android:gravity="top|start">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_width"
+                android:height="@dimen/scan_corner_length" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+
+    <!-- 右上角 -->
+    <item android:gravity="top|end">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_length"
+                android:height="@dimen/scan_corner_width" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+    <item android:gravity="top|end">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_width"
+                android:height="@dimen/scan_corner_length" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+
+    <!-- 左下角 -->
+    <item android:gravity="bottom|start">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_length"
+                android:height="@dimen/scan_corner_width" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+    <item android:gravity="bottom|start">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_width"
+                android:height="@dimen/scan_corner_length" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+
+    <!-- 右下角 -->
+    <item android:gravity="bottom|end">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_length"
+                android:height="@dimen/scan_corner_width" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+    <item android:gravity="bottom|end">
+        <shape android:shape="rectangle">
+            <size
+                android:width="@dimen/scan_corner_width"
+                android:height="@dimen/scan_corner_length" />
+            <solid android:color="@color/brand" />
+        </shape>
+    </item>
+
+</layer-list>

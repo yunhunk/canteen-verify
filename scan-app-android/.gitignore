@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+/local.properties
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# 签名文件：绝不入库
+*.jks
+*.keystore
+keystore.properties

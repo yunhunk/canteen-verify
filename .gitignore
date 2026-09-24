@@ -1,0 +1,28 @@
+# ══════════ 敏感配置（绝不入库）══════════
+.env
+.env.*
+!deploy/.env.example
+.deploy/
+.workbuddy/
+# 签名密钥（keystore 泄露=任何人可冒签你的 App）
+scan-app-android/keystore/
+
+# ══════════ 依赖与构建产物 ══════════
+node_modules/
+backend/dist/
+admin-web/dist/
+scan-app-android/app/build/
+scan-app-android/.gradle/
+scan-app-android/build/
+scan-app-android/local.properties
+
+# ══════════ 大文件产物（APK 走 Releases，不进源码库）══════════
+*.apk
+
+# ══════════ 系统与日志 ══════════
+.DS_Store
+Thumbs.db
+*.log
+*.tgz
+*.timestamp-*.mjs
+*.timestamp-*.mjs

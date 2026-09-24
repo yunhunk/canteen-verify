@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.CanteenScan" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorOnPrimary">@color/text_on_brand</item>
+        <item name="colorSurface">@color/bg_card</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:colorBackground">@color/bg_page</item>
+        <item name="android:statusBarColor">@color/brand</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+    </style>
+
+    <!-- 启动页：白底 + 品牌色，避免冷启动时先闪一下系统默认背景 -->
+    <style name="Theme.CanteenScan.Splash" parent="Theme.CanteenScan">
+        <item name="android:windowBackground">@color/bg_card</item>
+        <item name="android:statusBarColor">@color/bg_card</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- 扫码页：全屏黑底，状态栏透明，取景框更沉浸 -->
+    <style name="Theme.CanteenScan.Scanner" parent="Theme.CanteenScan">
+        <item name="android:windowBackground">@color/bg_scanner</item>
+        <item name="android:statusBarColor">@color/bg_scanner</item>
+        <item name="android:navigationBarColor">@color/bg_scanner</item>
+    </style>
+
+    <!-- ============ 通用控件样式 ============ -->
+
+    <style name="CardStyle">
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:padding">16dp</item>
+    </style>
+
+    <style name="PrimaryButton" parent="Widget.Material3.Button">
+        <item name="android:layout_height">52dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="backgroundTint">@color/brand</item>
+        <item name="android:textColor">@color/text_on_brand</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+
+    <style name="SecondaryButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:layout_height">44dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="strokeColor">@color/divider</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="cornerRadius">10dp</item>
+    </style>
+
+    <style name="InputStyle" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeColor">@color/brand</item>
+    </style>
+
+    <!-- 扫码页底部工具按钮：压在相机预览上，需半透明深底 + 白字 -->
+    <style name="ScanToolButton" parent="Widget.Material3.Button">
+        <item name="android:layout_height">46dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="backgroundTint">#CCFFFFFF</item>
+        <item name="android:textColor">#FF1F2328</item>
+        <item name="cornerRadius">10dp</item>
+    </style>
+
+    <style name="LabelText">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+    </style>
+
+    <style name="ValueText">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+</resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 品牌色：与员工端小程序、管理后台保持同一蓝（#2b6cb0），
+         核销员在多个端之间切换时不会产生"这是不是同一个系统"的疑问 -->
+    <color name="brand">#2B6CB0</color>
+    <color name="brand_dark">#1E4E8C</color>
+    <color name="brand_light">#EAF2FB</color>
+
+    <color name="success">#3B6D11</color>
+    <color name="success_bg">#EAF3DE</color>
+    <color name="danger">#A32D2D</color>
+    <color name="danger_bg">#FCEBEB</color>
+    <color name="warning">#BA7517</color>
+    <color name="warning_bg">#FAEEDA</color>
+
+    <color name="text_primary">#1F2328</color>
+    <color name="text_secondary">#5F6673</color>
+    <color name="text_tertiary">#8C939E</color>
+    <color name="text_on_brand">#FFFFFF</color>
+
+    <color name="bg_page">#F4F6F8</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_scanner">#000000</color>
+    <color name="divider">#E5E8EC</color>
+    <color name="scrim">#99000000</color>
+</resources>

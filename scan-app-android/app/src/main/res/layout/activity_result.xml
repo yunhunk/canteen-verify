@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_page"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- 结果区 -->
+        <LinearLayout
+            android:id="@+id/resultHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="24dp"
+            android:paddingBottom="20dp">
+
+            <!-- 圆形图标底 + 图标 -->
+            <FrameLayout
+                android:id="@+id/iconWrap"
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:background="@drawable/bg_circle_success">
+
+                <ImageView
+                    android:id="@+id/ivIcon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/cd_result_icon"
+                    android:src="@drawable/ic_check_circle" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/result_success"
+                android:textColor="@color/success"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <!-- 员工姓名：成功时最需要被看清的信息 -->
+            <TextView
+                android:id="@+id/tvEmployee"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/text_primary"
+                android:textSize="19sp"
+                android:textStyle="bold"
+                tools:text="张三" />
+        </LinearLayout>
+
+        <!-- 失败原因卡 -->
+        <LinearLayout
+            android:id="@+id/failCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="18dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvFailReason"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                tools:text="当前不在可核销时段" />
+
+            <TextView
+                android:id="@+id/tvFailAdvice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_warn_soft"
+                android:lineSpacingExtra="4dp"
+                android:padding="12dp"
+                android:textColor="@color/warning"
+                android:textSize="13sp"
+                tools:text="当前不在用餐时段，请按上方时间再来" />
+        </LinearLayout>
+
+        <!-- 成功详情卡 -->
+        <LinearLayout
+            android:id="@+id/successCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/LabelText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/result_meal_standard" />
+
+                    <TextView
+                        android:id="@+id/tvMeal"
+                        style="@style/ValueText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="17sp"
+                        tools:text="15 元" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/LabelText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/result_quota_remain" />
+
+                    <TextView
+                        android:id="@+id/tvQuota"
+                        style="@style/ValueText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="17sp"
+                        tools:text="12 次" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/divider" />
+
+            <TextView
+                android:id="@+id/tvWindow"
+                style="@style/LabelText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                tools:text="午餐（11:00-13:30）今日第 1 次" />
+
+            <TextView
+                android:id="@+id/tvStore"
+                style="@style/LabelText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                tools:text="门店：总部食堂" />
+
+            <TextView
+                android:id="@+id/tvTime"
+                style="@style/LabelText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                tools:text="时间：2026-09-24 12:03:18" />
+
+            <!-- 播报回显：让核销员知道机器念了什么，
+                 员工说"没听清"时可以直接对照 -->
+            <TextView
+                android:id="@+id/tvVoice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_ok_soft"
+                android:padding="11dp"
+                android:textColor="@color/success"
+                android:textSize="12sp"
+                tools:text="已播报「核销成功，餐标15元」" />
+        </LinearLayout>
+
+        <!-- 操作区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPrimary"
+                style="@style/PrimaryButton"
+                android:layout_width="match_parent"
+                android:text="@string/result_continue" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnHistory"
+                style="@style/SecondaryButton"
+                android:layout_width="match_parent"
+                android:layout_marginTop="10dp"
+                android:text="@string/result_history" />
+
+            <!-- 自动返回倒计时：成功时给出，避免核销员忘记点"继续扫码" -->
+            <TextView
+                android:id="@+id/tvAutoBack"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="@color/text_tertiary"
+                android:textSize="12sp"
+                tools:text="4 秒后自动继续扫码 · 点击取消" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

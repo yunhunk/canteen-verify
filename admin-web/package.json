@@ -1,0 +1,24 @@
+{
+  "name": "tuan-can-admin-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "企业团餐核销系统 · 管理后台（平台端 + 公司端）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check:api": "node scripts/check-api.cjs"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "element-plus": "^2.8.8",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^5.4.11"
+  }
+}

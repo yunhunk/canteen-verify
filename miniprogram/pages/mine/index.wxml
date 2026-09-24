@@ -1,0 +1,124 @@
+<view class="page">
+  <!-- 顶部身份区 -->
+  <view class="hero">
+    <view class="hero-top">
+      <view class="hero-avatar">{{user && user.name ? user.name[0] : '员'}}</view>
+      <view class="hero-info">
+        <view class="hero-name">{{user && user.name ? user.name : '未登录'}}</view>
+        <view class="hero-sub">
+          {{user && user.companyName ? user.companyName : '—'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="container">
+    <block wx:if="{{loading}}">
+      <view class="card">
+        <view class="skeleton-row"></view>
+        <view class="skeleton-row short"></view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view wx:if="{{errorMsg}}" class="card error-card">
+        <text>{{errorMsg}}</text>
+        <view class="btn-ghost retry-btn" bindtap="loadAll">重试</view>
+      </view>
+
+      <!-- 账户被停用时给出明确指引，否则用户只会看到"核销失败" -->
+      <view wx:if="{{user && user.status === 0}}" class="card warn-card">
+        <view class="warn-title">账号已停用</view>
+        <view class="warn-body">你的账号已被管理员停用，暂时无法核销。请联系统一管理员。</view>
+        <view class="btn-ghost warn-btn" bindtap="onRelogin">重新登录</view>
+      </view>
+
+      <!-- 统计 -->
+      <view class="card">
+        <view class="card-title">我的统计</view>
+        <view class="stat-row">
+          <view class="stat-item" bindtap="goRecords">
+            <view class="stat-value">{{stat.total}}</view>
+            <view class="stat-label">累计</view>
+          </view>
+          <view class="stat-item" bindtap="goRecords">
+            <view class="stat-value">{{stat.month}}</view>
+            <view class="stat-label">本月</view>
+          </view>
+          <view class="stat-item" bindtap="goRecords">
+            <view class="stat-value">{{stat.today}}</view>
+            <view class="stat-label">今日</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 个人信息 -->
+      <view class="card">
+        <view class="card-title">个人信息</view>
+        <view class="row">
+          <text class="row-label">姓名</text>
+          <text class="row-value">{{user.name || '—'}}</text>
+        </view>
+        <view class="row">
+          <text class="row-label">所属公司</text>
+          <text class="row-value">{{user.companyName || '—'}}</text>
+        </view>
+        <view class="row">
+          <text class="row-label">工号</text>
+          <text class="row-value" bindtap="onCopyEmployeeNo">
+            {{user.employeeNo || '未设置'}}
+            <text wx:if="{{user.employeeNo}}" class="copy-hint">复制</text>
+          </text>
+        </view>
+        <view class="row">
+          <text class="row-label">手机号</text>
+          <text class="row-value">{{user.phone || '—'}}</text>
+        </view>
+        <view class="row">
+          <text class="row-label">账号状态</text>
+          <text class="row-value {{user.status === 1 ? 'ok' : 'off'}}">
+            {{user.status === 1 ? '正常' : '已停用'}}
+          </text>
+        </view>
+        <view class="row">
+          <text class="row-label">剩余核销次数</text>
+          <text class="row-value {{quotaExhausted ? 'off' : 'ok'}}">{{quotaText}}</text>
+        </view>
+        <view class="row">
+          <text class="row-label">餐标</text>
+          <text class="row-value">{{user.mealStandardText || '未设置'}}</text>
+        </view>
+      </view>
+
+      <!-- 次数用完时给出明确指引，避免用户反复刷新核销码 -->
+      <view wx:if="{{quotaExhausted}}" class="card warn-card">
+        <view class="warn-title">核销次数已用完</view>
+        <view class="warn-body">
+          公司对你的核销次数做了限制，当前已用完。请联系公司管理员增加次数。
+        </view>
+      </view>
+
+      <!-- 快捷入口 -->
+      <view class="card">
+        <view class="cell" bindtap="goQrcode">
+          <text>出示核销码</text>
+          <text class="cell-arrow">›</text>
+        </view>
+        <view class="cell" bindtap="goRecords">
+          <text>消费记录</text>
+          <text class="cell-arrow">›</text>
+        </view>
+        <view class="cell" bindtap="goFeedback">
+          <text>意见反馈</text>
+          <text class="cell-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="btn-logout" bindtap="onLogout">退出登录</view>
+
+      <view class="footer-tip">
+        核销码一次性使用，请勿截图或转发给他人
+      </view>
+    </block>
+  </view>
+</view>
