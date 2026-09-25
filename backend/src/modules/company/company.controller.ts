@@ -185,8 +185,15 @@ export class CompanyOverviewController {
     return this.companyService.companyStatistics(user.companyId);
   }
 
-  /** 本公司剩余次数（员工端首页不再展示，但保留接口给其他端用） */
+  /**
+   * 本公司剩余次数（员工端首页不再展示，但保留接口给其他端用）
+   *
+   * @Roles('company')：配额属于公司经营数据，不应让任意登录主体读取。
+   * 此前缺此注解，而旧 RolesGuard 是 fail-open，导致持员工令牌者
+   * 也能拿到公司名与总额度/剩余额度。
+   */
   @Get('company/remain')
+  @Roles('company')
   async remain(@CurrentUser() user: JwtUser) {
     const stat = await this.companyService.companyStatistics(user.companyId);
     return {

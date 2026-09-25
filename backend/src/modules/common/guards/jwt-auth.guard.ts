@@ -70,6 +70,12 @@ export class JwtAuthGuard implements CanActivate {
       if (actual !== expected) {
         throw BizException.sessionRevoked('微信绑定已解除，请重新登录');
       }
+      // 以库中数据为准回填 companyId —— 与下方 admin 分支同样的理由：
+      // 员工被跨公司转移后重签会递增 token_version（已失效），但
+      // 「以库为准」这层纵深防御能保证即便有无序并发，令牌携带的
+      // 也永远是最新租户，不会拿着旧 companyId 去消耗别家配额。
+      payload.companyId = employee.company_id ? String(employee.company_id) : null;
+      payload.name = employee.name;
     }
 
     // 后台角色：追加查库校验会话是否被吊销

@@ -304,8 +304,13 @@ export class PlatformEmployeeController {
  *
  * 所有接口都以 JWT 中的 uid 为准取数据 —— 不接受请求传入 employeeId，
  * 否则任何员工都能拿到别人的消费记录。
+ *
+ * 类级 @Roles('employee')：作为纵深防御，新增的处理函数会自动继承
+ * 「仅员工可访问」，不必逐个记得补注解。此前 GET windows 漏了
+ * 方法级 @Roles（8f382），类级声明可从根上避免这类遗漏。
  */
 @Controller('api/employee')
+@Roles('employee')
 export class EmployeeController {
   constructor(private readonly employeeService: EmployeeService) {}
 

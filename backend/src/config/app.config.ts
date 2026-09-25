@@ -103,6 +103,17 @@ export const loadConfig = (): AppConfig => {
     if (!process.env.WX_APPID || !process.env.WECHAT_APPSECRET) {
       throw new Error('生产环境必须配置 WX_APPID 和 WECHAT_APPSECRET');
     }
+    // 漏洞 23242：绝不允许以默认弱口令连数据库。
+    // 弱默认（root/root）一旦随镜像/Dockerfile 泄漏，等于给攻击者留后门，
+    // 因此生产模式必须显式配置 DB_USER / DB_PASSWORD，否则直接拒绝启动。
+    const dbUser = process.env.DB_USER;
+    const dbPassword = process.env.DB_PASSWORD;
+    if (!dbUser || !dbPassword) {
+      throw new Error('生产环境必须显式配置 DB_USER 和 DB_PASSWORD');
+    }
+    if (dbPassword === 'root' || dbPassword === 'password' || dbPassword.length < 12) {
+      throw new Error('DB_PASSWORD 强度不足（禁用 root/password 等弱口令，长度须 ≥12）');
+    }
     process.env.ALLOW_LEGACY_DEVICE_TOKEN = '0';
   }
 
@@ -115,8 +126,10 @@ export const loadConfig = (): AppConfig => {
     db: {
       host: process.env.DB_HOST || '127.0.0.1',
       port: Number(process.env.DB_PORT || 3306),
-      username: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'root',
+      // 不再提供 'root' 兜底：本地模式无 MySQL，生产模式上面已强制校验。
+      // 保留空串兜底只影响 localMode（SQLite 不用这些字段）。
+      username: process.env.DB_USER || '',
+      password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'canteen_verify',
       synchronize: localMode ? false : false,
     },

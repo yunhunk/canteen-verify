@@ -16,7 +16,7 @@ import { BizException } from '../common/biz-code';
 import { RedisService } from '../common/redis.service';
 import { OperationLogService } from '../operation-log/operation-log.service';
 import { evaluateRules, isInWindow, resolveWindow, toHhmm } from '../rule/rule-evaluator';
-import { candidateHashes, hashDeviceKey } from '../common/utils/device-key';
+import { candidateHashesAsync, hashDeviceKey } from '../common/utils/device-key';
 import { buildVerifyVoiceText, toMealStandard } from '../common/utils/meal-standard';
 import { parseQrPayload } from '../qrcode/qr-encoder';
 
@@ -95,10 +95,16 @@ export class VerifyService {
    * 以及 scrypt 改造后的 `v2$` 前缀（131 字符）。库里两种都有，
    * 若只算一种必然有一批设备验不通。候选哈希按「当前格式优先」
    * 排序，逐个查，命中即可 —— 设备端无感知，老设备不用换密钥。
+   *
+   * ## 为什么用异步哈希
+   *
+   * 本方法在**未认证**的 /api/device/verify 上被调用。scrypt 是内存硬
+   * 函数，同步计算会把事件循环卡住数十毫秒；并发打满即等于拒绝服务
+   * （CWE-770）。candidateHashesAsync 把计算放到线程池，不阻塞主循环。
    */
   async authenticateDevice(deviceKey?: string, deviceToken?: string, storeId?: string): Promise<Device | null> {
     if (deviceKey) {
-      const candidates = candidateHashes(deviceKey);
+      const candidates = await candidateHashesAsync(deviceKey);
       const device = await this.deviceRepo.findOne({
         where: candidates.map((h) => ({ key_hash: h })),
       });
@@ -149,11 +155,30 @@ export class VerifyService {
     storeId?: string | null;
     /** 核销员 id：员工代扫时为员工 id；设备核销为 null */
     verifierId?: string | null;
+    /**
+     * 调用方所属租户。
+     *
+     * 用于与二维码所属公司做归属比对 —— 没有它，任何已登录主体
+     * 都能拿别家公司的二维码来扣别家公司的额度（跨租户越权）。
+     * 设备通道传设备绑定的 company_id；员工通道传 JWT 里的 companyId；
+     * 平台超管为 null（表示跨租户操作，放行）。
+     */
+    verifierCompanyId?: string | null;
+    /** 调用方角色：'device' / 'employee' / 'company' / 'super' */
+    verifierRole?: string | null;
     /** 操作日志用的操作人信息 */
     operator?: Operator;
     ip?: string | null;
   }): Promise<VerifyResult> {
-    const { qrToken: rawQrToken, device, storeId, verifierId, operator, ip } = params;
+    const {
+      qrToken: rawQrToken,
+      device,
+      storeId,
+      verifierId,
+      verifierCompanyId,
+      operator,
+      ip,
+    } = params;
 
     // ── 0. 归一化扫码内容
     // 二维码里画的是 `TCV1:<token>`（前缀帮扫码端识别这是我们的码），
@@ -166,6 +191,24 @@ export class VerifyService {
     // 占位放在所有业务校验通过之后：若提前占位，员工在非用餐时段
     // 误扫一次，二维码就作废了，必须手动刷新才能再扫 —— 这是个体验硬伤。
     const qr: QrCode = await this.peekQrToken(qrToken);
+
+    // ── a2. 租户归属校验（必须在任何扣减之前）
+    //
+    // 核销的扣费对象由「二维码所属公司」决定，若不校验调用方归属，
+    // 就会出现：A 公司的员工/设备拿 B 公司的二维码，扣掉 B 公司的配额。
+    // 这是典型的跨租户越权（CWE-862）。
+    //
+    // 规则：
+    //   - 调用方是平台超管（companyId 为 null 且角色 super）→ 放行
+    //   - 调用方有租户（员工 / 公司管理员 / 已绑公司的设备）
+    //     且与二维码所属公司不一致 → 拒绝
+    //   - 设备未绑定公司（company_id 为 null，平台级设备）→ 放行
+    //     （该语义与 Store.company_id 一致，见设备实体注释）
+    this.assertTenantMatch(
+      verifierCompanyId ?? null,
+      String(qr.company_id),
+      params.verifierRole ?? null,
+    );
 
     // ── b. 员工 / 公司状态
     const employee = await this.employeeRepo.findOne({ where: { id: qr.employee_id } });
@@ -399,6 +442,34 @@ export class VerifyService {
   }
 
   /**
+   * 租户归属断言：调用方所属公司必须与二维码所属公司一致。
+   *
+   * 这是跨租户越权的关键闸门。核销的扣费对象取自二维码记录，
+   * 若不比对调用方归属，A 公司的身份就能消耗 B 公司的配额。
+   *
+   * 放行的两种情况：
+   *   1. 平台超管（role='super'）—— 本来就跨租户作业
+   *   2. 调用方无租户归属（companyId 为 null）—— 平台级设备 / 未绑公司的门店
+   *
+   * 注意：这里**不接受**来自请求体的 companyId，只接受由服务端
+   * （JWT payload 或设备记录）推导出来的值，避免攻击者自报家门。
+   */
+  private assertTenantMatch(
+    verifierCompanyId: string | null,
+    qrCompanyId: string,
+    verifierRole: string | null,
+  ) {
+    // 平台超管：跨租户作业，放行
+    if (verifierRole === 'super') return;
+    // 无租户归属：平台级设备 / 全局资源，放行
+    if (!verifierCompanyId) return;
+
+    if (String(verifierCompanyId) !== String(qrCompanyId)) {
+      throw BizException.forbidden('该二维码不属于您所在的公司，无法核销');
+    }
+  }
+
+  /**
    * 门店落点判定。
    *
    * 设备已绑定门店时以设备为准 —— 否则一台 A 店设备改一下请求参数
@@ -416,6 +487,13 @@ export class VerifyService {
         throw BizException.badRequest('设备绑定的门店不属于该二维码所属公司');
       }
       return String(device.store_id);
+    }
+
+    // 设备未绑定门店：仍须确保设备本身的租户与二维码公司一致。
+    // 否则一台 A 公司的设备（无绑店）可以核销 B 公司的码，
+    // 绕过 assertTenantMatch 之外的所有门店维度校验。
+    if (device?.company_id && String(device.company_id) !== companyId) {
+      throw BizException.badRequest('该设备不属于二维码所属公司');
     }
 
     if (reqStoreId) {

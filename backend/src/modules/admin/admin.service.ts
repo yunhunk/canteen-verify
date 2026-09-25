@@ -1,7 +1,7 @@
 import { Operator } from '../common/types/operator';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Admin, Company } from '../../database/entities';
 import { BizException } from '../common/biz-code';
@@ -15,6 +15,8 @@ export class AdminService {
     @InjectRepository(Admin) private readonly adminRepo: Repository<Admin>,
     @InjectRepository(Company) private readonly companyRepo: Repository<Company>,
     private readonly logs: OperationLogService,
+    /** 「最后一个超管」这类不变量需要事务 + 悲观锁才能保证 */
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -181,16 +183,24 @@ export class AdminService {
     const next = Number(status) === 1 ? 1 : 0;
     const isSelf = String(operator?.uid) === String(admin.id);
 
-    if (next === 0) {
-      if (isSelf) throw BizException.selfLock('不能停用当前登录的账号');
-      if (admin.role === 'super') await this.assertNotLastSuperAdmin(admin.id, '停用');
-    }
-
     const before = admin.status;
-    admin.status = next;
-    // 停用/启用都递增：启用时递增是为了让停用期间可能被签发的 token 也失效
-    admin.token_version = (admin.token_version ?? 1) + 1;
-    await this.adminRepo.save(admin);
+
+    // 「最后一个超管」的检查与写入必须原子化，否则并发下会双双通过，
+    // 导致平台失去全部启用超管（CWE-362）。整个操作放进事务，
+    // 并在检查时对启用超管集合加悲观写锁。
+    await this.dataSource.transaction(async (manager) => {
+      if (next === 0) {
+        if (isSelf) throw BizException.selfLock('不能停用当前登录的账号');
+        if (admin.role === 'super') {
+          await this.assertNotLastSuperAdmin(admin.id, '停用', manager);
+        }
+      }
+
+      admin.status = next;
+      // 停用/启用都递增：启用时递增是为了让停用期间可能被签发的 token 也失效
+      admin.token_version = (admin.token_version ?? 1) + 1;
+      await manager.save(Admin, admin);
+    });
 
     await this.logs.record({
       companyId: admin.company_id,
@@ -221,10 +231,16 @@ export class AdminService {
     if (String(operator?.uid) === String(admin.id)) {
       throw BizException.selfLock('不能删除当前登录的账号');
     }
-    if (admin.role === 'super') await this.assertNotLastSuperAdmin(admin.id, '删除');
 
     const snapshot = { username: admin.username, role: admin.role, companyId: admin.company_id };
-    await this.adminRepo.delete({ id: admin.id });
+
+    // 同 setStatus：检查与删除必须原子，否则并发可删光所有超管
+    await this.dataSource.transaction(async (manager) => {
+      if (admin.role === 'super') {
+        await this.assertNotLastSuperAdmin(admin.id, '删除', manager);
+      }
+      await manager.delete(Admin, { id: admin.id });
+    });
 
     await this.logs.record({
       companyId: admin.company_id,
@@ -249,10 +265,28 @@ export class AdminService {
    * 注意这里统计的是 **status=1 的 super 且排除自己**：
    * 若有 2 个启用超管，停掉其中一个还剩 1 个，是安全的；
    * 只剩 1 个时任何停用/删除都会让平台彻底失去入口。
+   *
+   * ## 必须传入事务管理器
+   *
+   * 该防护是典型的「先检查后操作」，若检查与写入不在同一事务里，
+   * 两个并发请求会各自读到「还有其他超管」而双双通过 ——
+   * 最终平台 0 个启用超管，且应用内无任何恢复途径（CWE-362）。
+   *
+   * 传入 manager 后，调用方在事务内先锁住**整个启用超管集合**
+   * （SELECT ... FOR UPDATE），第二个请求必须等第一个提交完才能
+   * 继续计数，此时它读到的就是已扣除后的真实数量。
+   *
+   * 注意：锁必须覆盖「所有启用超管行」而非仅目标行 ——
+   * 两个请求操作的是不同行，只锁目标行拦不住它们互相看不见。
    */
-  private async assertNotLastSuperAdmin(excludeId: string, action: string) {
-    const others = await this.adminRepo
-      .createQueryBuilder('a')
+  private async assertNotLastSuperAdmin(
+    excludeId: string,
+    action: string,
+    manager: EntityManager,
+  ) {
+    const others = await manager
+      .createQueryBuilder(Admin, 'a')
+      .setLock('pessimistic_write')
       .where('a.role = :r', { r: 'super' })
       .andWhere('a.status = 1')
       .andWhere('a.id != :id', { id: excludeId })

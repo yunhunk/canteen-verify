@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { loadConfig } from './config/app.config';
 import { ensureDatabase } from './database/ensure-database';
@@ -13,9 +14,19 @@ async function bootstrap() {
     await ensureDatabase();
   }
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
+
+  // ── 反代信任配置 ──
+  // 生产环境位于 nginx 之后，必须显式声明受信跳数，否则 Express 的 req.ip
+  // 会取到 nginx 容器 IP（所有请求同一个值），且无法安全解析 X-Forwarded-For。
+  //
+  // 设为 1 表示「只信任紧邻的一跳」：Express 会从 XFF 右侧剥离 1 个地址，
+  // 取到真实客户端。绝不能设 true —— 那会信任客户端伪造的整条链。
+  //
+  // 本地模式无代理，保持 false，req.ip 直接取 socket 对端。
+  app.set('trust proxy', config.localMode ? false : 1);
 
   // 全局 DTO 校验：白名单 + 自动转型，多余字段直接剔除
   app.useGlobalPipes(

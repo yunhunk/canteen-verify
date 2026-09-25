@@ -11,6 +11,7 @@ scan-app-android/keystore/
 node_modules/
 backend/dist/
 admin-web/dist/
+backend/local.db
 scan-app-android/app/build/
 scan-app-android/.gradle/
 scan-app-android/build/

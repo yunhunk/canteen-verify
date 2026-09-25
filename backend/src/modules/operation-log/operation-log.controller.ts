@@ -22,6 +22,7 @@ class LogQueryDto {
  * 任何公司管理员改一下 query string 就能读到别家的操作记录。
  */
 @Controller('api/company/operation-logs')
+@Roles('company')
 export class CompanyLogController {
   constructor(private readonly logs: OperationLogService) {}
 
@@ -47,6 +48,7 @@ export class CompanyLogController {
  * URL 形态也不同（公司端不带 companyId、平台端可带），合并会牺牲清晰度。
  */
 @Controller('api/platform/operation-logs')
+@Roles('super')
 export class PlatformLogController {
   constructor(private readonly logs: OperationLogService) {}
 

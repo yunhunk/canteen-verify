@@ -13,7 +13,20 @@ import { hashDeviceKey } from '../modules/common/utils/device-key';
  * 3. 灌一份可直接演示的种子数据
  *
  * 只灌一次：库里已有超管账号就跳过，避免每次重启都重置密码。
+ *
+ * ⚠️ 安全（漏洞 724a4/51062）：本文件只在 **localMode** 下被调用，
+ *    但它同时被打包进生产镜像，硬编码凭据会被静态扫描当成「真密码泄漏」。
+ *    因此所有凭据改为从环境变量读取；本地未配置时才退回到演示值，
+ *    且退回到演示值时日志会显式提示「仅限本地演示」。
+ *    生产分支由 app.config.ts 的启动校验兜底（本函数不会在生产被调用）。
  */
+
+/** 读取种子凭据：优先环境变量，本地缺省用演示值 */
+function seedCredential(envKey: string, fallback: string): string {
+  const v = process.env[envKey];
+  return v && v.trim() ? v.trim() : fallback;
+}
+
 export async function ensureDatabase(): Promise<void> {
   const config = loadConfig();
   const ds = new DataSource(buildDataSourceOptions(config) as any);
@@ -27,6 +40,12 @@ export async function ensureDatabase(): Promise<void> {
     await ds.destroy();
     return;
   }
+
+  // 种子凭据（漏洞 724a4/51062）：全部走环境变量，本地演示值仅作兜底
+  const superPwd = seedCredential('SEED_SUPER_PASSWORD', 'admin123456');
+  const companyPwd = seedCredential('SEED_COMPANY_PASSWORD', 'company123456');
+  const deviceKey1 = seedCredential('SEED_DEVICE_KEY_1', 'device-key-demo-0001');
+  const deviceKey2 = seedCredential('SEED_DEVICE_KEY_2', 'device-key-demo-0002');
 
   const companyRepo = ds.getRepository(Company);
   const planRepo = ds.getRepository(Plan);
@@ -71,7 +90,7 @@ export async function ensureDatabase(): Promise<void> {
   await adminRepo.save([
     adminRepo.create({
       username: 'admin',
-      password_hash: await bcrypt.hash('admin123456', 10),
+      password_hash: await bcrypt.hash(superPwd, 10),
       company_id: null,
       role: 'super',
       status: 1,
@@ -79,7 +98,7 @@ export async function ensureDatabase(): Promise<void> {
     }),
     adminRepo.create({
       username: 'company_a',
-      password_hash: await bcrypt.hash('company123456', 10),
+      password_hash: await bcrypt.hash(companyPwd, 10),
       company_id: String(companyA.id),
       role: 'company',
       status: 1,
@@ -87,7 +106,7 @@ export async function ensureDatabase(): Promise<void> {
     }),
     adminRepo.create({
       username: 'company_b',
-      password_hash: await bcrypt.hash('company123456', 10),
+      password_hash: await bcrypt.hash(companyPwd, 10),
       company_id: String(companyB.id),
       role: 'company',
       status: 1,
@@ -106,16 +125,16 @@ export async function ensureDatabase(): Promise<void> {
   await deviceRepo.save([
     deviceRepo.create({
       name: '总部食堂闸机 01',
-      key_hash: hash('device-key-demo-0001'),
-      key_prefix: 'device-k',
+      key_hash: hash(deviceKey1),
+      key_prefix: deviceKey1.slice(0, 8),
       store_id: String(store1.id),
       company_id: null,
       status: 1,
     }),
     deviceRepo.create({
       name: '移动扫码枪 01',
-      key_hash: hash('device-key-demo-0002'),
-      key_prefix: 'device-k',
+      key_hash: hash(deviceKey2),
+      key_prefix: deviceKey2.slice(0, 8),
       store_id: null,
       company_id: null,
       status: 1,
@@ -169,13 +188,15 @@ export async function ensureDatabase(): Promise<void> {
 
   await ds.destroy();
 
+  // 只在本地演示模式下打印明文凭据；生产分支不会走到这里，且日志中不出现真实密码。
+  const isDemo = !process.env.SEED_SUPER_PASSWORD && !process.env.SEED_COMPANY_PASSWORD;
   // eslint-disable-next-line no-console
   console.log(
-    '[local] 已初始化本地演示数据：\n' +
-      '       平台超管 admin / admin123456\n' +
-      '       A 公司管理员 company_a / company123456\n' +
-      '       B 公司管理员 company_b / company123456\n' +
-      '       设备密钥 device-key-demo-0001（绑总部食堂）/ device-key-demo-0002（不绑店）',
+    '[local] 已初始化本地演示数据（仅供本地演示，切勿用于生产）：\n' +
+      `       平台超管 admin / ${isDemo ? superPwd : '<SEED_SUPER_PASSWORD>'}\n` +
+      `       A 公司管理员 company_a / ${isDemo ? companyPwd : '<SEED_COMPANY_PASSWORD>'}\n` +
+      `       B 公司管理员 company_b / ${isDemo ? companyPwd : '<SEED_COMPANY_PASSWORD>'}\n` +
+      `       设备密钥 ${isDemo ? `${deviceKey1}（绑总部食堂）/ ${deviceKey2}（不绑店）` : '<SEED_DEVICE_KEY_1/2>'}`,
   );
 }
 

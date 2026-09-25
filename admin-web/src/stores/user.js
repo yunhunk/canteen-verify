@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { login as loginApi } from '@/api/auth';
+import { login as loginApi, logout as logoutApi } from '@/api/auth';
 import { setToken, clearToken, getToken } from '@/utils/request';
 
 const USER_KEY = 'admin_user';
@@ -50,7 +50,19 @@ export const useUserStore = defineStore('user', () => {
     return res.user;
   }
 
-  function logout() {
+  /**
+   * 登出（漏洞 04f84）。
+   *
+   * 先请求后端注销（token_version+1，服务端立即失效），
+   * 再清本地 —— 顺序不能反：清了 token 就带不上 Authorization 头，
+   * 后端无从知道该吊销谁。后端失败也要继续清本地，否则用户卡在登录态。
+   */
+  async function logout() {
+    try {
+      await logoutApi();
+    } catch {
+      /* 网络异常/已失效时忽略，本地登出照常进行 */
+    }
     clearToken();
     clearUser();
     user.value = null;

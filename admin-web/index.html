@@ -3,6 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      CSP 回退（漏洞 5ac96/b4d15）。
+      主防线在 nginx 的 security-headers.conf（HTTP 响应头，优先级更高）。
+      这里用 meta 再声明一层：万一静态站被别处托管、或 nginx 配置被误改，
+      浏览器仍能按 meta 里的策略拦截内联脚本与外部注入。
+      注意：meta CSP 必须放在所有会加载资源的标签之前才生效。
+      允许 'unsafe-inline' style 是因为 Element Plus 运行时注入内联样式；
+      script 未放开 unsafe-inline/eval，Vite 产物是外链文件，无需内联。
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    />
     <title>团餐核销 · 管理后台</title>
   </head>
   <body>

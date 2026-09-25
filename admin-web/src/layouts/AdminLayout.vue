@@ -40,7 +40,7 @@ async function onLogout() {
   } catch {
     return; // 用户取消
   }
-  store.logout();
+  await store.logout(); // 先等服务端吊销 token 再跳转（漏洞 04f84）
   router.replace('/login');
 }
 </script>

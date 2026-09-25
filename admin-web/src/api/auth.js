@@ -6,6 +6,13 @@ import http, { download } from '@/utils/request';
  */
 export const login = (data) => http.post('/auth/admin/login', data);
 
-/** 当前登录者信息 —— 后端没有 /me 接口，这里直接从登录响应里取，见 stores/user.js */
+/**
+ * 服务端登出（漏洞 04f84）。
+ *
+ * 仅清前端 token 是不够的：JWT 在过期前仍然有效，若被中间人截获，
+ * 即便用户已"退出"，攻击者仍能继续用。调用后端登出会把
+ * token_version +1，使该账号**已签发的全部 token 立即作废**。
+ */
+export const logout = () => http.post('/auth/logout');
 
-export const authApi = { login };
+export const authApi = { login, logout };

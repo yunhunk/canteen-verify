@@ -22,6 +22,16 @@
  */
 const BASE = process.env.BASE || 'http://127.0.0.1:3311';
 
+/**
+ * 测试凭据（漏洞 724a4/50b9f）：一律从环境变量取，脚本内不留明文口令/密钥。
+ * 默认值是**本地演示种子**的公开值（见 backend/src/database/ensure-database.ts），
+ * 不是任何真实环境的秘密；指向生产时请用环境变量覆盖。
+ */
+const SEED_SUPER_PASSWORD = process.env.SEED_SUPER_PASSWORD || 'admin123456';
+const SEED_COMPANY_PASSWORD = process.env.SEED_COMPANY_PASSWORD || 'company123456';
+const DEVICE_KEY_1 = process.env.SEED_DEVICE_KEY_1 || 'device-key-demo-0001';
+const DEVICE_KEY_2 = process.env.SEED_DEVICE_KEY_2 || 'device-key-demo-0002';
+
 let pass = 0;
 let fail = 0;
 const problems = [];
@@ -115,7 +125,7 @@ async function main() {
   // ─────────────────────────────────────────────
   section('1. 设备密钥校验（App 绑定页逻辑）');
 
-  const goodKey = await checkDeviceKey('device-key-demo-0001');
+  const goodKey = await checkDeviceKey(DEVICE_KEY_1);
   check('有效密钥探测 → 校验通过（非 2006）', goodKey.valid === true, goodKey);
 
   const badKey = await checkDeviceKey('this-key-does-not-exist-at-all');
@@ -133,7 +143,7 @@ async function main() {
 
   const superLogin = await api('/api/auth/admin/login', {
     method: 'POST',
-    body: { username: 'admin', password: 'admin123456' },
+    body: { username: 'admin', password: SEED_SUPER_PASSWORD },
   });
   const superToken = superLogin.body?.data?.token;
   check('平台超管登录', !!superToken, superLogin.body);
@@ -181,7 +191,7 @@ async function main() {
 
   const v1 = await api('/api/device/verify', {
     method: 'POST',
-    body: { deviceKey: 'device-key-demo-0002', qrToken: qr1 },
+    body: { deviceKey: DEVICE_KEY_2, qrToken: qr1 },
   });
 
   check('核销成功 code=0', v1.body?.code === 0, v1.body);
@@ -228,7 +238,7 @@ async function main() {
   const v2 = await api('/api/device/verify', {
     method: 'POST',
     body: {
-      deviceKey: 'device-key-demo-0001', // 绑定「总部食堂」的设备
+      deviceKey: DEVICE_KEY_1, // 绑定「总部食堂」的设备
       qrToken: qr2,
       storeId: String(store2.id), // 恶意传另一家门店
     },
@@ -247,7 +257,7 @@ async function main() {
   // 给 B 公司配「全天不限」规则 → 核销结果应带 window
   const bLogin = await api('/api/auth/admin/login', {
     method: 'POST',
-    body: { username: 'company_b', password: 'company123456' },
+    body: { username: 'company_b', password: SEED_COMPANY_PASSWORD },
   });
   const bToken = bLogin.body?.data?.token;
   check('B 公司管理员登录', !!bToken, bLogin.body);
@@ -262,7 +272,7 @@ async function main() {
   const qr3 = await issueQr();
   const v3 = await api('/api/device/verify', {
     method: 'POST',
-    body: { deviceKey: 'device-key-demo-0002', qrToken: qr3 },
+    body: { deviceKey: DEVICE_KEY_2, qrToken: qr3 },
   });
   check('核销成功', v3.body?.code === 0, v3.body);
   const w = v3.body?.data?.window;
@@ -282,13 +292,13 @@ async function main() {
 
   const dup = await api('/api/device/verify', {
     method: 'POST',
-    body: { deviceKey: 'device-key-demo-0002', qrToken: qr3 },
+    body: { deviceKey: DEVICE_KEY_2, qrToken: qr3 },
   });
   check('同一码二次核销 → 2001（App 提示「请员工刷新」）', dup.body?.code === 2001, dup.body?.code);
 
   const badToken = await api('/api/device/verify', {
     method: 'POST',
-    body: { deviceKey: 'device-key-demo-0002', qrToken: 'not-a-real-token' },
+    body: { deviceKey: DEVICE_KEY_2, qrToken: 'not-a-real-token' },
   });
   check('伪造二维码 → 2001', badToken.body?.code === 2001, badToken.body?.code);
 

@@ -713,11 +713,25 @@ export class EmployeeService {
       employee.phone = phone;
     }
     if (dto.employeeNo !== undefined) employee.employee_no = dto.employeeNo?.trim() || null;
-    if (dto.companyId !== undefined) {
+
+    // ── 跨公司转移：必须同时失效会话与未使用的二维码
+    //
+    // 员工 JWT 里内嵌了 companyId，且 JwtAuthGuard 只对 admin 角色
+    // 从库里重新推导公司，**员工不重新推导**。因此转移公司后，
+    // 旧令牌仍携带旧租户 id —— 它会被 QrcodeService.issue() 当作
+    // 二维码的 company_id 写库，后续核销按旧公司扣额度，
+    // 形成跨租户配额消耗（CWE-613 租户作用域残留）。
+    //
+    // 同文件里的 unbindWechat / setStatus 都会主动失效，
+    // 转移公司却漏了 —— 这里补齐，保持行为一致。
+    let companyChanged = false;
+    if (dto.companyId !== undefined && String(dto.companyId) !== String(employee.company_id)) {
       const company = await this.companyRepo.findOne({ where: { id: dto.companyId } });
       if (!company) throw BizException.badRequest('公司不存在');
       employee.company_id = dto.companyId;
+      companyChanged = true;
     }
+
     if (dto.status !== undefined) {
       employee.status = Number(dto.status) === 1 ? 1 : 0;
       if (employee.status === 0) {
@@ -729,13 +743,27 @@ export class EmployeeService {
       employee.quota_total = this.normalizeQuota(dto.quotaTotal);
     }
 
+    // 转移公司 → 递增 token_version 让旧租户范围的 JWT 立即失效
+    if (companyChanged) {
+      employee.token_version = (employee.token_version ?? 1) + 1;
+    }
+
     await this.employeeRepo.save(employee);
+
+    // 转移公司 → 作废该员工所有未使用的二维码。
+    // 二维码是设备端可直接兑换的凭证，不依赖员工令牌，
+    // 仅递增 token_version 挡不住它 —— 必须显式作废。
+    if (companyChanged) {
+      await this.qrRepo.update({ employee_id: id, status: 1 }, { status: 0 });
+    }
 
     await this.logs.record({
       companyId: String(employee.company_id),
       module: 'employee',
       action: 'update',
-      description: `编辑员工「${employee.name}」`,
+      description: companyChanged
+        ? `将员工「${employee.name}」转移至其他公司（已失效其登录状态与未使用二维码）`
+        : `编辑员工「${employee.name}」`,
       operatorId: operator?.uid,
       operatorName: operator?.name,
       operatorRole: operator?.role,
@@ -751,6 +779,7 @@ export class EmployeeService {
           status: employee.status,
           ...this.quotaVo(employee),
         },
+        ...(companyChanged ? { companyTransferred: true } : {}),
       },
       ip,
     });

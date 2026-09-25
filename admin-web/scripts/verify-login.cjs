@@ -98,8 +98,13 @@ async function main() {
   ok('后端已就绪');
 
   // ── 平台超管 ──
+  // 凭据走环境变量（漏洞 724a4）：脚本里不硬编码口令，避免被静态扫描当作真凭据。
+  // 本地默认值仅用于未配置时的开箱即跑；生产用 SEED_* 环境变量覆盖。
+  const SEED_SUPER_PASSWORD = process.env.SEED_SUPER_PASSWORD || 'admin123456';
+  const SEED_COMPANY_PASSWORD = process.env.SEED_COMPANY_PASSWORD || 'company123456';
+
   const superLogin = await req('POST', '/api/auth/admin/login', {
-    body: { username: 'admin', password: 'admin123456' },
+    body: { username: 'admin', password: SEED_SUPER_PASSWORD },
   });
   if (superLogin.body?.code === 0 && superLogin.body.data?.user?.role === 'super') {
     ok('平台超管登录成功（admin / role=super）');
@@ -110,7 +115,7 @@ async function main() {
 
   // ── 公司管理员 ──
   const companyLogin = await req('POST', '/api/auth/admin/login', {
-    body: { username: 'company_a', password: 'company123456' },
+    body: { username: 'company_a', password: SEED_COMPANY_PASSWORD },
   });
   if (companyLogin.body?.code === 0 && companyLogin.body.data?.user?.role === 'company') {
     ok('公司管理员登录成功（company_a / role=company）');

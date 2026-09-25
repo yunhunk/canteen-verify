@@ -73,9 +73,15 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.3")
+    // 版本修正：1.12.3 / 1.3.3 在上游仓库并不存在（google / aliyun 均 404，
+    // 会导致 dataBindingMergeDependencyArtifacts 解析失败），改用实际存在的
+    // 邻近版本；这两个库在本工程只用到基础控件，版本差异无影响。
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.recyclerview:recyclerview:1.3.3")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // 漏洞 10325：设备密钥加密落盘（EncryptedSharedPreferences + Android Keystore）
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.activity:activity-ktx:1.9.1")
