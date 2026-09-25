@@ -1,7 +1,7 @@
 import { Operator } from '../common/types/operator';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { APP_CONFIG, AppConfig } from '../../config/app.config';
 import {
   Company,
@@ -16,7 +16,7 @@ import { BizException } from '../common/biz-code';
 import { RedisService } from '../common/redis.service';
 import { OperationLogService } from '../operation-log/operation-log.service';
 import { evaluateRules, isInWindow, resolveWindow, toHhmm } from '../rule/rule-evaluator';
-import { hashDeviceKey } from '../common/utils/device-key';
+import { candidateHashes, hashDeviceKey } from '../common/utils/device-key';
 import { buildVerifyVoiceText, toMealStandard } from '../common/utils/meal-standard';
 import { parseQrPayload } from '../qrcode/qr-encoder';
 
@@ -70,6 +70,7 @@ export class VerifyService {
     @InjectRepository(VerificationRule)     private readonly ruleRepo: Repository<VerificationRule>,
     private readonly redis: RedisService,
     private readonly logs: OperationLogService,
+    private readonly dataSource: DataSource,
   ) {}
 
   // ---------------------------------------------------------------
@@ -87,11 +88,20 @@ export class VerifyService {
    * 优先用登记表下发的一机一密钥；旧的全局密钥仅在
    * ALLOW_LEGACY_DEVICE_TOKEN=1 时放行，生产必须关闭 ——
    * 否则「一把钥匙丢 = 全平台设备失守」。
+   *
+   * ## 为什么查一组哈希而不是一个
+   *
+   * 历史上 key_hash 存过两种格式：早期 sha256（64 字符），
+   * 以及 scrypt 改造后的 `v2$` 前缀（131 字符）。库里两种都有，
+   * 若只算一种必然有一批设备验不通。候选哈希按「当前格式优先」
+   * 排序，逐个查，命中即可 —— 设备端无感知，老设备不用换密钥。
    */
   async authenticateDevice(deviceKey?: string, deviceToken?: string, storeId?: string): Promise<Device | null> {
     if (deviceKey) {
-      const hash = VerifyService.hashDeviceKey(deviceKey);
-      const device = await this.deviceRepo.findOne({ where: { key_hash: hash } });
+      const candidates = candidateHashes(deviceKey);
+      const device = await this.deviceRepo.findOne({
+        where: candidates.map((h) => ({ key_hash: h })),
+      });
       if (!device) throw BizException.deviceInvalid('设备密钥无效或已失效');
       if (device.status !== 1) throw BizException.deviceInvalid('设备已停用，请联系平台管理员');
       return device;
@@ -171,7 +181,7 @@ export class VerifyService {
     }
 
     // ── 门店落点：设备绑定门店优先，忽略请求参数
-    const finalStoreId = await this.resolveStoreId(device, storeId);
+    const finalStoreId = await this.resolveStoreId(device, storeId ?? null, String(company.id));
 
     // ── c. 核销时段校验（在扣减之前！）
     const now = new Date();
@@ -233,102 +243,68 @@ export class VerifyService {
     );
     if (!claimed) throw BizException.duplicateVerify();
 
-    // ── d + e. 原子扣减（乐观锁 SQL，防超扣）
-    const deductResult = await this.companyRepo
-      .createQueryBuilder()
-      .update(Company)
-      .set({ remain_quota: () => 'remain_quota - 1' })
-      .where('id = :id AND remain_quota > 0', { id: company.id })
-      .execute();
-
-    if (!deductResult.affected || deductResult.affected === 0) {
-      // 次数不足同样要释放占位：这二维码没用掉，员工充值后还能继续扫
-      await this.redis.del(`verify:${qrToken}`);
-      throw BizException.quotaExhausted('该公司剩余次数不足，请联系平台管理员充值');
-    }
-
-    // ── e2. 员工个人额度原子扣减（第二道闸）
-    // 条件里带 `quota_total IS NULL OR quota_used < quota_total`，
-    // 让"额度判断"和"扣减"在一条 SQL 里完成，避免并发下先查后扣的竞态。
-    // 员工无个人额度（NULL）时 SQL 恒真，直接 +1，不影响老租户。
-    const empDeduct = await this.employeeRepo
-      .createQueryBuilder()
-      .update(Employee)
-      .set({ quota_used: () => 'quota_used + 1' })
-      .where('id = :eid AND (quota_total IS NULL OR quota_used < quota_total)', {
-        eid: employee.id,
-      })
-      .execute();
-
-    if (!empDeduct.affected || empDeduct.affected === 0) {
-      // 员工额度不足：公司池刚才已经扣了，必须原样补回来 + 释放占位，
-      // 否则会出现"被拒一次，公司总次数少 1"的账目黑洞。
-      await this.companyRepo
+    // ── d ~ g 全部在事务内完成，DB 一致性由事务保证
+    const consumption = await this.dataSource.transaction(async (manager) => {
+      // d. 原子扣减公司额度
+      const deductResult = await manager
         .createQueryBuilder()
         .update(Company)
-        .set({ remain_quota: () => 'remain_quota + 1' })
-        .where('id = :id', { id: company.id })
+        .set({ remain_quota: () => 'remain_quota - 1' })
+        .where('id = :id AND remain_quota > 0', { id: company.id })
         .execute();
-      await this.releaseClaim(qrToken);
-      await this.logs.record({
-        companyId: String(company.id),
-        module: 'verify',
-        action: 'verify_reject',
-        description: `核销被拒：员工个人核销次数已用完（并发占用）`,
-        operatorId: operator?.uid ?? null,
-        operatorName: operator?.name ?? employee.name,
-        operatorRole: operator?.role ?? 'employee',
-        targetType: 'employee',
-        targetId: employee.id,
-        detail: { reason: 'employee_quota_exhausted', atomic: true },
-        ip,
-      });
-      throw BizException.employeeQuotaExhausted();
-    }
+      if (!deductResult.affected || deductResult.affected === 0) {
+        throw BizException.quotaExhausted('该公司剩余次数不足，请联系平台管理员充值');
+      }
 
-    // ── f. 写核销记录
-    let consumption: Consumption;
-    try {
-      consumption = await this.consumptionRepo.save(
-        this.consumptionRepo.create({
-          company_id: String(company.id),
-          employee_id: String(employee.id),
-          qrcode_id: String(qr.id),
-          store_id: finalStoreId,
-          verify_time: now,
-          deduct_quota: 1,
-          verifier_id: verifierId ? String(verifierId) : null,
-          rule_id: evaluation.matchedRuleId,
-        }),
-      );
-    } catch (e) {
-      // 记录写失败必须把扣减补回来，否则次数凭空蒸发
-      await this.companyRepo
-        .createQueryBuilder()
-        .update(Company)
-        .set({ remain_quota: () => 'remain_quota + 1' })
-        .where('id = :id', { id: company.id })
-        .execute();
-      // 员工个人额度同样要回补（e2 已经扣过）
-      await this.employeeRepo
+      // e2. 员工个人额度原子扣减
+      const empDeduct = await manager
         .createQueryBuilder()
         .update(Employee)
-        .set({ quota_used: () => 'quota_used - 1' })
-        .where('id = :eid AND quota_used > 0', { eid: employee.id })
+        .set({ quota_used: () => 'quota_used + 1' })
+        .where('id = :eid AND (quota_total IS NULL OR quota_used < quota_total)', {
+          eid: employee.id,
+        })
         .execute();
-      // 同时释放占位，让用户可以重试
-      await this.releaseClaim(qrToken);
-      this.logger.error(`核销记录写入失败，已回补次数：${(e as Error).message}`);
-      throw BizException.badRequest('核销记录写入失败，请重试');
-    }
+      if (!empDeduct.affected || empDeduct.affected === 0) {
+        throw BizException.employeeQuotaExhausted(); // 事务自动回滚公司扣减
+      }
 
-    // 二维码置为「已核销」（status=2，区别于刷新/停用产生的 0=作废）+
-    // 设备使用时间。员工端轮询看到 2，就能在占位区显示「已核销（套餐档）」，
-    // 而不是继续挂着一张已经没用的码。
-    await this.qrRepo.update({ id: qr.id }, { status: 2 });
-    if (device) {
-      await this.deviceRepo.update({ id: device.id }, { last_used_at: now });
-    }
+      // f. 写核销记录
+      const c = manager.create(Consumption, {
+        company_id: String(company.id),
+        employee_id: String(employee.id),
+        qrcode_id: String(qr.id),
+        store_id: finalStoreId,
+        verify_time: now,
+        deduct_quota: 1,
+        verifier_id: verifierId ? String(verifierId) : null,
+        rule_id: evaluation.matchedRuleId,
+      });
+      const saved = await manager.save(c);
+
+      // g1. QR 置为已核销（带 status=1 条件，防 0→2 非法转换）
+      const qrUpdate = await manager.update(QrCode, { id: qr.id, status: 1 }, { status: 2 });
+      if (!qrUpdate.affected) {
+        throw BizException.qrInvalid('二维码状态已变更，请刷新后重试'); // 事务回滚
+      }
+
+      // g2. 设备使用时间
+      if (device) {
+        await manager.update(Device, { id: device.id }, { last_used_at: now });
+      }
+
+      return saved;
+    }).catch((err) => {
+      // 事务失败：释放占位（可恢复错误才释放）
+      if (err instanceof BizException) {
+        this.releaseClaim(qrToken);
+        throw err;
+      }
+      // 未知异常也要释放占位
+      this.releaseClaim(qrToken);
+      this.logger.error(`核销事务失败：${(err as Error).message}`);
+      throw BizException.badRequest('核销失败，请重试');
+    });
 
     const store = finalStoreId
       ? await this.storeRepo.findOne({ where: { id: finalStoreId } })
@@ -428,13 +404,27 @@ export class VerifyService {
    * 设备已绑定门店时以设备为准 —— 否则一台 A 店设备改一下请求参数
    * 就能冒充 B 店核销，门店统计会失真。
    */
-  private async resolveStoreId(device: Device | null, reqStoreId?: string | null): Promise<string | null> {
-    if (device?.store_id) return String(device.store_id);
+  private async resolveStoreId(
+    device: Device | null,
+    reqStoreId: string | null,
+    companyId: string,
+  ): Promise<string | null> {
+    if (device?.store_id) {
+      // 校验设备绑定门店的公司归属
+      const devStore = await this.storeRepo.findOne({ where: { id: String(device.store_id) } });
+      if (devStore?.company_id && String(devStore.company_id) !== companyId) {
+        throw BizException.badRequest('设备绑定的门店不属于该二维码所属公司');
+      }
+      return String(device.store_id);
+    }
 
     if (reqStoreId) {
       const store = await this.storeRepo.findOne({ where: { id: reqStoreId } });
       if (!store) throw BizException.badRequest('门店不存在');
       if (store.status !== 1) throw BizException.badRequest('门店已停用');
+      if (store.company_id && String(store.company_id) !== companyId) {
+        throw BizException.badRequest('门店不属于该公司');
+      }
       return String(store.id);
     }
     return null;

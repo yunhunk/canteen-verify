@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { ENTITIES, Admin, Company, Device, Employee, Plan, Store, VerificationRule } from './entities';
 import { buildDataSourceOptions } from '../config/app.config';
 import { loadConfig } from '../config/app.config';
+import { hashDeviceKey } from '../modules/common/utils/device-key';
 
 /**
  * 本地零依赖模式的建库流程
@@ -179,6 +180,6 @@ export async function ensureDatabase(): Promise<void> {
 }
 
 function hash(plain: string): string {
-  // 与 VerifyService.hashDeviceKey 保持一致
-  return require('crypto').createHash('sha256').update(plain).digest('hex');
+  // 与 DeviceService / VerifyService 写入时用的哈希保持一致（v2$ + scrypt）
+  return hashDeviceKey(plain);
 }
