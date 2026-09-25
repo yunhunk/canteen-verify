@@ -7,11 +7,22 @@
  *   B. 换发密钥不受长度限制（回归同上）
  *   C. 旧 sha256 格式设备的密钥仍能通过鉴权（回归：biz 2006 设备密钥无效）
  *
- * 用法：node verify-device-key-fix.cjs <BASE_URL> <ADMIN_USER> <ADMIN_PASS>
+ * 用法：
+ *   SEED_PLATFORM_ADMIN=admin SEED_PLATFORM_PASSWORD=*** \
+ *   SEED_DEVICE_KEY=device-key-demo-0001 \
+ *   node verify-device-key-fix.cjs [BASE_URL]
+ *
+ * 凭据一律走环境变量，禁止硬编码（MonkeyScan 724a4/51062/50b9f/20652）。
  */
-const BASE = (process.argv[2] || 'https://tuancan.gengle.xyz').replace(/\/$/, '');
-const USER = process.argv[3] || 'admin';
-const PASS = process.argv[4] || 'admin123456';
+const BASE = (process.env.ONLINE_BASE || process.argv[2] || 'https://tuancan.gengle.xyz').replace(/\/$/, '');
+const USER = process.env.SEED_PLATFORM_ADMIN || process.argv[3] || '';
+const PASS = process.env.SEED_PLATFORM_PASSWORD || process.argv[4] || '';
+const LEGACY_DEVICE_KEY = process.env.SEED_DEVICE_KEY || '';
+
+if (!USER || !PASS) {
+  console.error('缺少 SEED_PLATFORM_ADMIN / SEED_PLATFORM_PASSWORD（本脚本不内置任何凭据）');
+  process.exit(2);
+}
 
 let pass = 0;
 let fail = 0;
@@ -98,9 +109,12 @@ async function req(method, path, { token, body } = {}) {
 
   // ── C. 旧 sha256 设备密钥仍可鉴权 ─────────────────────────
   console.log('\n【C】旧 sha256 格式设备密钥鉴权（回归 biz 2006）');
-  // id=1 的哈希对应明文 device-key-demo-0001（sha256 格式，库里 64 字符）
+  if (!LEGACY_DEVICE_KEY) {
+    console.log('  ⏭  未设 SEED_DEVICE_KEY，跳过旧 sha256 鉴权断言');
+  } else {
+  // 该明文对应线上 id=1 设备的哈希（sha256 格式，库里 64 字符）
   const legacy = await req('POST', '/api/device/verify', {
-    body: { deviceKey: 'device-key-demo-0001', qrToken: 'INVALID-TOKEN-PROBE' },
+    body: { deviceKey: LEGACY_DEVICE_KEY, qrToken: 'INVALID-TOKEN-PROBE' },
   });
   const errCode = legacy.json?.code;
   // 关键：若设备鉴权通过，会进入二维码校验并返回二维码相关错误（如 2001）；
@@ -114,6 +128,7 @@ async function req(method, path, { token, body } = {}) {
       '旧 sha256 密钥通过设备鉴权',
       `返回 code=${errCode}（非 2006 即鉴权已通过，进入后续校验）`,
     );
+  }
   }
 
   // ── D. 新密钥同样可鉴权 ───────────────────────────────────
