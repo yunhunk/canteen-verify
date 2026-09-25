@@ -42,11 +42,6 @@ async function onSubmit() {
   }
 }
 
-/** 演示环境便捷填充 —— 对应后端种子账号 */
-function fill(username, password) {
-  form.username = username;
-  form.password = password;
-}
 </script>
 
 <template>
@@ -105,17 +100,6 @@ function fill(username, password) {
           登录
         </el-button>
       </el-form>
-
-      <div class="demo">
-        <span class="demo-label">种子账号：</span>
-        <el-link type="primary" :underline="false" @click="fill('admin', 'admin123456')">
-          平台超管
-        </el-link>
-        <el-divider direction="vertical" />
-        <el-link type="primary" :underline="false" @click="fill('company_a', 'company123456')">
-          公司管理员
-        </el-link>
-      </div>
     </div>
   </div>
 </template>
@@ -174,15 +158,5 @@ function fill(username, password) {
 
 .submit {
   width: 100%;
-}
-
-.demo {
-  margin-top: 18px;
-  text-align: center;
-  font-size: 12px;
-}
-
-.demo-label {
-  color: #9ca3af;
 }
 </style>
