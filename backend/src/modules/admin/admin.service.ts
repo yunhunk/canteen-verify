@@ -53,8 +53,11 @@ export class AdminService {
     if (username.length < 3 || username.length > 50) {
       throw BizException.badRequest('账号长度需在 3-50 个字符之间');
     }
-    if (!dto.password || String(dto.password).length < 6) {
-      throw BizException.badRequest('密码至少 6 位');
+    if (!dto.password || String(dto.password).length < 8) {
+      throw BizException.badRequest('密码至少 8 位，且需包含字母和数字');
+    }
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(String(dto.password))) {
+      throw BizException.badRequest('密码需同时包含字母和数字');
     }
 
     const role = dto.role === 'super' ? 'super' : 'company';
@@ -119,8 +122,11 @@ export class AdminService {
     const admin = await this.adminRepo.findOne({ where: { id: targetId } });
     if (!admin) throw BizException.notFound('账号不存在');
 
-    if (!dto.newPassword || String(dto.newPassword).length < 6) {
-      throw BizException.badRequest('新密码至少 6 位');
+    if (!dto.newPassword || String(dto.newPassword).length < 8) {
+      throw BizException.badRequest('新密码至少 8 位，且需包含字母和数字');
+    }
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(String(dto.newPassword))) {
+      throw BizException.badRequest('新密码需同时包含字母和数字');
     }
 
     const isSelf = String(operator?.uid) === String(admin.id);

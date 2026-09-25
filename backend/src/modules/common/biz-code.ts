@@ -20,6 +20,8 @@ export const BizCode = {
   SESSION_REVOKED: 1006,
   /** 自锁保护：不能停用/删除自己或最后一个超管 */
   SELF_LOCK: 1007,
+  /** 请求过于频繁（限流） */
+  TOO_MANY_REQUESTS: 1008,
 
   /** 二维码无效 / 过期 / 已使用 */
   QR_INVALID: 2001,
@@ -81,6 +83,10 @@ export class BizException extends Error {
 
   static selfLock(message = '该操作会导致平台失去管理入口，已被拒绝') {
     return new BizException(BizCode.SELF_LOCK, message);
+  }
+
+  static tooManyRequests(message = '请求过于频繁，请稍后再试') {
+    return new BizException(BizCode.TOO_MANY_REQUESTS, message);
   }
 
   static qrInvalid(message = '二维码无效或已过期') {

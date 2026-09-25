@@ -18,6 +18,7 @@ import {
 @Index('idx_company_time', ['company_id', 'verify_time'])
 @Index('idx_employee', ['employee_id'])
 @Index('idx_rule_employee_time', ['rule_id', 'employee_id', 'verify_time'])
+@Index('uk_qrcode_consumption', ['qrcode_id'], { unique: true })
 export class Consumption {
   @PrimaryGeneratedColumn({ type: PRIMARY_ID_TYPE })
   id: string;

@@ -28,7 +28,15 @@ async function bootstrap() {
   );
 
   // CSV 导出等场景需要拿到原始响应对象，关闭内置 body parser 的干扰
-  app.enableCors({ origin: true, credentials: true });
+  // P0-6 修复：CORS 白名单制，禁止 origin:true 全站放行
+  const allowedOrigins = config.localMode
+    ? true
+    : [process.env.CORS_ORIGIN].filter(Boolean) as string[];
+  app.enableCors(
+    config.localMode
+      ? { origin: true, credentials: true }
+      : { origin: allowedOrigins, credentials: true },
+  );
 
   const port = config.port;
   // 监听地址可配：默认 0.0.0.0（本地开发方便）。

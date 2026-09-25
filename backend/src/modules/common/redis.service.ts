@@ -34,13 +34,20 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.client = new Redis({
         host: this.config.redis.host,
         port: this.config.redis.port,
+        password: this.config.redis.password,
         lazyConnect: false,
         maxRetriesPerRequest: 2,
-        retryStrategy: () => null, // 不无限重连，直接用降级路径
+        retryStrategy: (times: number) => {
+          // 指数退避：1s → 2s → 4s → 8s → 16s，最多 5 次后放弃降级
+          if (times > 5) return null;
+          return Math.min(1000 * 2 ** (times - 1), 16000);
+        },
       });
       await this.client.ping();
       this.logger.log(`Redis 已连接 ${this.config.redis.host}:${this.config.redis.port}`);
     } catch (e) {
+      // ping 失败说明 maxRetriesPerRequest 已耗尽，主动断开避免后台重连泄漏连接
+      this.client?.disconnect?.();
       this.client = null;
       this.enableDegraded(`Redis 连接失败：${(e as Error).message}`);
     }

@@ -48,7 +48,7 @@ const createRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' },
+    { min: 8, message: '密码至少 8 位，需含字母和数字', trigger: 'blur' },
   ],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
 };
@@ -90,7 +90,7 @@ const pwdForm = reactive({ password: '' });
 const pwdRules = {
   password: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' },
+    { min: 8, message: '密码至少 8 位，需含字母和数字', trigger: 'blur' },
   ],
 };
 

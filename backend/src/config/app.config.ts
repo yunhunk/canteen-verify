@@ -76,6 +76,7 @@ export interface AppConfig {
   redis: {
     host: string;
     port: number;
+    password?: string;
   };
   wechat: {
     appId: string;
@@ -92,6 +93,19 @@ export interface AppConfig {
 
 export const loadConfig = (): AppConfig => {
   const localMode = process.env.LOCAL_MODE === '1';
+
+  // ═══ P0 修复：生产模式启动校验，拒绝带病运行 ═══
+  if (!localMode) {
+    const jwtSecret = process.env.JWT_SECRET || '';
+    if (!jwtSecret || jwtSecret === 'dev-secret-change-me-in-production' || jwtSecret.length < 32) {
+      throw new Error('生产环境必须配置 JWT_SECRET（≥32字符，用 openssl rand -hex 32 生成）');
+    }
+    if (!process.env.WX_APPID || !process.env.WECHAT_APPSECRET) {
+      throw new Error('生产环境必须配置 WX_APPID 和 WECHAT_APPSECRET');
+    }
+    process.env.ALLOW_LEGACY_DEVICE_TOKEN = '0';
+  }
+
   return {
     port: Number(process.env.PORT || 3000),
     host: process.env.HOST || '0.0.0.0',
@@ -104,20 +118,20 @@ export const loadConfig = (): AppConfig => {
       username: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || 'root',
       database: process.env.DB_NAME || 'canteen_verify',
-      // 生产库结构变更走 migration，绝不 synchronize
-      synchronize: process.env.DB_SYNC === '1',
+      synchronize: localMode ? false : false,
     },
     redis: {
       host: process.env.REDIS_HOST || '127.0.0.1',
       port: Number(process.env.REDIS_PORT || 6379),
+      password: process.env.REDIS_PASSWORD || undefined,
     },
     wechat: {
       appId: process.env.WX_APPID || '',
       appSecret: process.env.WECHAT_APPSECRET || process.env.WX_SECRET || '',
     },
-    allowLegacyDeviceToken: process.env.ALLOW_LEGACY_DEVICE_TOKEN
-      ? process.env.ALLOW_LEGACY_DEVICE_TOKEN === '1'
-      : localMode, // 本地模式默认放开，便于老脚本复用；生产需显式设 0
+    allowLegacyDeviceToken: localMode
+      ? process.env.ALLOW_LEGACY_DEVICE_TOKEN !== '0'
+      : false,
     qrcodeTtlSeconds: Number(process.env.QRCODE_TTL || 300),
   };
 };

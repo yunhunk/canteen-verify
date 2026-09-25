@@ -136,20 +136,39 @@ export class AuthService {
   async code2session(code: string): Promise<string> {
     const { appId, appSecret } = this.config.wechat;
     if (!appId || !appSecret) {
-      this.logger.warn('未配置微信 appId/appSecret，使用本地 mock openid（仅限开发）');
-      return `mock_openid_${code}`;
+      if (this.config.localMode) {
+        this.logger.warn('未配置微信 appId/appSecret，使用本地 mock openid（仅限开发）');
+        return `mock_openid_${code}`;
+      }
+      // P0-2 修复：生产模式拒绝 mock，统一报错（启动校验已拦截但仍保留运行时防御）
+      throw BizException.unauthorized('微信登录未配置，请联系管理员');
     }
     const url =
       `https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(appId)}` +
       `&secret=${encodeURIComponent(appSecret)}&js_code=${encodeURIComponent(code)}` +
       `&grant_type=authorization_code`;
-    const res = await fetch(url);
-    const data = (await res.json()) as any;
-    if (!data.openid) {
-      this.logger.error(`code2session 失败: ${JSON.stringify(data)}`);
+    // P1-6 修复：fetch 加超时，防微信慢响应拖垮
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    let data: any;
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      if (!res.ok) throw new Error(`wx http ${res.status}`);
+      data = await res.json() as any;
+    } catch (e) {
+      throw BizException.unauthorized('微信登录失败，请重试');
+    } finally {
+      clearTimeout(timer);
+    }
+    // P1-3 修复：不把整段响应（含 session_key）写日志
+    if ((data as any).errcode) {
+      this.logger.error(`code2session 失败: errcode=${(data as any).errcode}`);
       throw BizException.unauthorized('微信登录失败，请重试');
     }
-    return data.openid as string;
+    if (!(data as any).openid) {
+      throw BizException.unauthorized('微信登录失败，请重试');
+    }
+    return (data as any).openid as string;
   }
 
   /**
@@ -159,6 +178,15 @@ export class AuthService {
    * - 未绑定 → 用手机号（或工号）匹配员工 → 绑定 openid → 签发 JWT
    */
   async employeeLogin(code: string, phone?: string, employeeNo?: string) {
+    // 按 phone 维度限流（5 分钟 10 次），防暴力绑定
+    if (phone) {
+      const rlKey = `rl:emp_login:${phone}`;
+      const cnt = await this.redis.incr(rlKey, LOGIN_FAIL_WINDOW);
+      if (cnt > LOGIN_FAIL_LIMIT) {
+        throw BizException.tooManyRequests('尝试次数过多，请 5 分钟后再试');
+      }
+    }
+
     const openid = await this.code2session(code);
 
     // 已绑定的直接登录

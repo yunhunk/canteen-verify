@@ -65,21 +65,15 @@ if [ "$SKIP_SSL" = 1 ]; then
 elif [ -d "/etc/letsencrypt/live/${DOMAIN}" ]; then
   echo "证书已存在：/etc/letsencrypt/live/${DOMAIN}"
 else
-  command -v certbot >/dev/null || die "未装 certbot：apt install -y certbot（webroot 模式需 80 端口可访问）"
-  # 先临时起一个纯 80 的 nginx 供 ACME 验证（compose 起来后由 web 容器接管）
+  command -v certbot >/dev/null || die "未装 certbot：apt install -y certbot（standalone 模式需 80 端口空闲）"
+  # standalone 模式：certbot 自带 HTTP 服务器监听 80 完成 ACME 验证，不需要外部 nginx
+  # 前提：80 端口空闲 —— 先停掉占 80 的容器（正常流程此时编排尚未启动）
   mkdir -p certbot
-  docker run --rm -d --name canteen-certbot-bootstrap -p 80:80 \
-    -v "$(pwd)/certbot:/var/www/certbot:ro" nginx:alpine \
-    nginx -t -c /dev/stdin <<NGINX || true
-events {}
-http { server { listen 80; location /.well-known/acme-challenge/ { root /var/www/certbot; } } }
-NGINX
-  sleep 1
-  certbot certonly --webroot -w ./certbot -d "${DOMAIN}" \
+  docker compose stop web 2>/dev/null || true
+  certbot certonly --standalone -d "${DOMAIN}" \
     --non-interactive --agree-tos --register-unsafely-without-email --keep-until-expiring \
-    || { docker rm -f canteen-certbot-bootstrap 2>/dev/null || true; die "证书签发失败：检查 DNS 是否解析到本机、80 端口是否可访问"; }
-  docker rm -f canteen-certbot-bootstrap 2>/dev/null || true
-  echo "证书签发成功；续期 crontab 建议：0 3 * * 1 certbot renew --webroot -w $(pwd)/certbot && docker exec canteen-web nginx -s reload"
+    || die "证书签发失败：检查 DNS 是否解析到本机、80 端口是否空闲"
+  echo "证书签发成功；续期 crontab 建议：0 3 * * 1 cd $(pwd) && docker compose stop web && certbot renew && docker compose start web"
 fi
 
 step "4/6 启动编排"

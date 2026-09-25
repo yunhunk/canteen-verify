@@ -25,7 +25,7 @@ services:
 
   # ---------- MySQL 8：唯一有状态的核心，数据落 named volume ----------
   mysql:
-    image: mysql:8.0
+    image: mysql:8.0.42
     container_name: canteen-mysql
     restart: unless-stopped
     ports:
@@ -44,8 +44,11 @@ services:
       - mysql-data:/var/lib/mysql
       # 首次启动自动建表 + 种子数据（文件由部署脚本准备；已初始化过的卷会跳过）
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    # mysql 需写数据目录故不设 read_only，仅丢弃 capabilities + 禁止提权
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -53,16 +56,19 @@ services:
 
   # ---------- Redis：核销码防重放 setNx / 会话辅助，可随时重建 ----------
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     container_name: canteen-redis
     restart: unless-stopped
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - redis-data:/data
+    # redis 需写数据目录故不设 read_only，仅丢弃 capabilities + 禁止提权
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -87,6 +93,7 @@ services:
       # 容器网络里互相用服务名访问，覆盖 .env 里的 127.0.0.1
       DB_HOST: mysql
       REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       # ── 其余业务配置全部来自 deploy/.env（一行一处，集中管理）──
       NODE_ENV: production
       PORT: 3100
@@ -110,10 +117,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    # 容器安全加固：丢弃所有 capabilities + 禁止提权 + 只读根文件系统
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp]
 
   # ---------- 前端 web：nginx 反代 /api + 托管 admin-web 静态产物 ----------
   web:
-    image: nginx:alpine
+    image: nginx:1.27-alpine
     container_name: canteen-web
     restart: unless-stopped
     depends_on:
@@ -130,6 +142,12 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       # certbot HTTP-01 验证目录（webroot 模式续期用）
       - ./certbot:/var/www/certbot:ro
+    # 容器安全加固：丢弃所有 capabilities（仅保留绑定 80/443 所需）+ 禁止提权 + 只读根文件系统
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
 
 volumes:
   mysql-data:

@@ -33,6 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       code = exception.code;
       message = exception.message;
       httpStatus = this.httpStatusOfBizCode(exception.code);
+      this.logger.warn(`${req?.method} ${req?.url} → biz ${code} ${message}`);
     } else if (exception instanceof HttpException) {
       httpStatus = exception.getStatus();
       const body = exception.getResponse();
@@ -54,6 +55,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = '服务器内部错误';
     }
 
+    if (res.headersSent) {
+      this.logger.error(`${req?.method} ${req?.url} → 响应头已发送，无法写入异常响应`);
+      return;
+    }
     res.status(httpStatus).json({ code, message, data: null });
   }
 
@@ -67,6 +72,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return HttpStatus.FORBIDDEN;
       case BizCode.NOT_FOUND:
         return HttpStatus.NOT_FOUND;
+      case BizCode.TOO_MANY_REQUESTS:
+        return HttpStatus.TOO_MANY_REQUESTS;
       case BizCode.LOGIN_FAILED:
       case BizCode.SELF_LOCK:
         return HttpStatus.BAD_REQUEST;

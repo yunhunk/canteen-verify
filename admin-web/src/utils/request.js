@@ -9,6 +9,14 @@ import { ElMessage } from 'element-plus';
  * 失败则统一弹提示并 reject。页面里就不该再出现 if (res.code === 0)。
  */
 
+/**
+ * ⚠️ 安全提示（P0-9）：
+ * 当前 token 存在 localStorage，存在 XSS 窃取风险（恶意脚本可直接读取）。
+ * 更安全的方案：后端通过 Set-Cookie 下发 HttpOnly + Secure + SameSite cookie，
+ * 前端不再自行存取 token，浏览器自动在请求中携带 cookie。
+ * 该改造涉及登录签发 + 鉴权中间件 + CSRF 防护全链路，改动较大，暂未实施。
+ * 过渡期务必确保前端无 XSS 漏洞（输入转义、CSP 策略、不使用 v-html 渲染用户输入）。
+ */
 const TOKEN_KEY = 'admin_token';
 
 export function getToken() {

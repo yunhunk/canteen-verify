@@ -5,6 +5,8 @@ import { Public } from '../common/decorators/roles.decorator';
 import { toOperator } from '../common/types/operator';
 import { ClientIp, CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
 import { ToStrOptional } from '../common/dto/to-str.decorator';
+import { RedisService } from '../common/redis.service';
+import { BizException } from '../common/biz-code';
 
 class ScanVerifyDto {
   @IsString()
@@ -30,7 +32,10 @@ class DeviceVerifyDto {
 
 @Controller('api')
 export class VerifyController {
-  constructor(private readonly verify: VerifyService) {}
+  constructor(
+    private readonly verify: VerifyService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * 门店核销员扫码核销（员工端 JWT 鉴权）
@@ -63,6 +68,11 @@ export class VerifyController {
   @Public()
   @Post('device/verify')
   async deviceVerify(@Body() dto: DeviceVerifyDto, @ClientIp() ip: string | null) {
+    // IP 维度限流：每分钟 30 次
+    const ipKey = `rl:device_verify:${ip ?? 'unknown'}`;
+    const cnt = await this.redis.incr(ipKey, 60);
+    if (cnt > 30) throw BizException.tooManyRequests();
+
     const device = await this.verify.authenticateDevice(
       dto.deviceKey,
       dto.deviceToken,

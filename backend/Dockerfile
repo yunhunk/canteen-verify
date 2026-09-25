@@ -1,6 +1,6 @@
 # ===== 阶段 1：构建 =====
 # 用带有 devDependencies 的完整依赖跑 tsc 编译出 dist/
-FROM node:20-alpine AS builder
+FROM node:20.18-alpine3.20 AS builder
 WORKDIR /app
 
 # 先只拷依赖清单，利用 Docker 层缓存：
@@ -14,7 +14,7 @@ RUN npm run build && npm prune --omit=dev
 
 # ===== 阶段 2：运行 =====
 # 运行镜像只带生产依赖 + 编译产物，体积小、攻击面小
-FROM node:20-alpine
+FROM node:20.18-alpine3.20
 WORKDIR /app
 ENV NODE_ENV=production
 
